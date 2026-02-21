@@ -66,7 +66,7 @@ def compute_oci_scores(
     # ----- OCI component: funding_gap -----
     # Already computed in data_loader; fill missing with 0.5 (unknown)
     df["has_funding_data"] = df["funding_gap"].notna()
-    df["funding_gap"] = pd.to_numeric(df["funding_gap"], errors="coerce").fillna(0.5)
+    df["funding_gap"] = pd.to_numeric(df["funding_gap"], errors="coerce").fillna(0.5).clip(0, 1)
 
     # ----- OCI raw score -----
     df["oci_raw"] = df["pin_normalized"] * df["severity_weight"] * df["funding_gap"]

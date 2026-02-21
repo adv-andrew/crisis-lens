@@ -8,9 +8,9 @@
 
 - **Project**: CrisisLens - Overlooked Crisis Index
 - **Phase**: Phase 1 (Core Functionality)
-- **Current Task**: Polish and deployment prep
-- **Last Updated**: 2026-02-20
-- **Tests Passing**: Yes (36/36)
+- **Current Task**: Final polish
+- **Last Updated**: 2026-02-21
+- **Tests Passing**: Yes (48/48)
 
 ---
 
@@ -18,7 +18,7 @@
 
 - Streamlit App: Port 8501 - Verified
 - Data Pipeline: CLI - Verified
-- Actian VectorAI: Docker - Not deployed
+- Actian VectorAI: Port 50051 (Docker) - Running
 
 ---
 
@@ -48,19 +48,19 @@
 - [x] Run data pipeline end-to-end (65 OCI scores, 8091 projects, 1069 funding rows)
 - [x] Verify all utils work with real data
 - [x] Verify Streamlit app starts cleanly
-- [x] Add tests for utils (36 tests: data_loader, oci_calculator, outlier_detector, similarity_engine)
+- [x] Add tests for utils (48 tests: data_loader, oci_calculator, outlier_detector, similarity_engine, actian_connector, edge cases)
 - [x] Set up linting (ruff, all checks passing)
 
 ### Phase 2: Polish
 - [x] Create README.md for GitHub/Devpost
-- [ ] Build Databricks notebook (full_pipeline.ipynb) with real data
-- [ ] Actian VectorAI DB integration testing
+- [x] Build Databricks notebook (full_pipeline.ipynb) - code complete, needs Databricks runtime for outputs
+- [x] Actian VectorAI DB integration testing (gRPC, 8091 vectors indexed, search working)
 - [ ] Deploy Streamlit app (Streamlit Cloud or Databricks serving)
 - [ ] Record 2-minute pitch video
 - [ ] Devpost submission
 
 ### Phase 3: Sponsor Challenges
-- [ ] Actian VectorAI DB sponsor challenge submission
+- [x] Actian VectorAI DB integrated (gRPC connector, auto-populate, 8091 vectors)
 - [ ] Figma Make individual submission
 - [ ] Databricks Raffle video
 
@@ -78,6 +78,10 @@
 - Fixed lambda assignments in filters.py - Feb 20
 - README.md created for GitHub/Devpost - Feb 20
 - PROGRESS.md created - Feb 20
+- Actian VectorAI DB integrated via gRPC (8091 vectors, cosine similarity search working) - Feb 21
+- Fixed negative funding gap bug in oci_calculator (added clip to input) - Feb 21
+- 48 tests passing (added actian connector tests, edge case tests) - Feb 21
+- Recommender page simplified (auto-runs similarity on page load) - Feb 21
 
 ---
 
@@ -92,7 +96,7 @@
 ## Risk Register
 
 - HNO severity data missing - Medium - Default to max severity (5.0) so OCI still differentiates on PIN + funding gap - Mitigated
-- Actian VectorAI not yet deployed - Low - sklearn fallback works seamlessly - Monitored
+- Actian VectorAI deployed via Docker on port 50051 - Low - gRPC connector working - Resolved
 - Data freshness depends on UN API availability - Low - Raw files cached locally after first download - Mitigated
 
 ---
@@ -100,9 +104,9 @@
 ## Session Notes
 
 ### Session: 2026-02-20
-**Completed**: Full codebase implementation, data pipeline verification, all utils tested with real data, 36 pytest tests, ruff linting, README.md, PROGRESS.md
-**Current State**: App runs with 65 OCI-scored crises, 8091 projects. Top overlooked: South Sudan (OCI=1.0), Sudan (0.86), Haiti (0.73). 36/36 tests passing, lint clean.
-**Next Steps**: Databricks notebook with real data, Actian VectorAI integration, deployment, pitch video
+**Completed**: Full codebase, data pipeline, Actian VectorAI gRPC integration, 48 tests, ruff linting, README, PROGRESS
+**Current State**: App runs with 65 OCI-scored crises, 8091 projects, Actian VectorAI with 8091 indexed vectors. 48/48 tests, lint clean.
+**Next Steps**: Deploy to Streamlit Cloud, record pitch video, Devpost submission, Figma Make, Databricks raffle video
 
 ---
 
