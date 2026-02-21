@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisLens — Overlooked Crisis Index</title>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ocha-blue: #002856;
+  --ocha-blue-mid: #1f69b3;
+  --ocha-blue-bright: #82b5e9;
+  --blue-grey: #e6ecf1;
+  --red: #cd3a1f;
+  --highlight-red: #e56a54;
+  --orange: #ff7a00;
+  --green: #7fb92f;
+  --grey-dark: #4a4a4a;
+  --grey-mid: #595959;
+  --grey-light: #f2f2f2;
+  --border: #d4d4d4;
+  --border-light: #e8e8e8;
+  --white: #ffffff;
+  --text: #4a4a4a;
+  --text-secondary: #646464;
+  --text-muted: #999999;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Roboto', helvetica, arial, sans-serif;
+  background: var(--grey-light);
+  color: var(--text);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Global OCHA header — thin navy strip */
+.ocha-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 51;
+  height: 35px;
+  background: var(--ocha-blue);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+}
+.ocha-bar a {
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  font-size: 11px;
+}
+.ocha-bar a:hover { color: #fff; }
+.ocha-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ocha-bar-label {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+}
+
+/* Site header — white bar below OCHA bar */
+.site-header {
+  position: fixed; top: 35px; left: 0; right: 0; z-index: 50;
+  height: 48px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+.site-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.site-title h1 {
+  font-family: 'Roboto Condensed', helvetica, arial, sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--grey-dark);
+}
+.site-title span {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+.site-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Layout positions */
+#map {
+  position: fixed;
+  top: 83px; /* 35 + 48 */
+  left: 310px;
+  right: 0;
+  bottom: 32px;
+}
+
+.sidebar {
+  position: fixed;
+  top: 83px;
+  left: 0;
+  bottom: 32px;
+  width: 310px;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+}
+
+/* Sidebar header */
+.sidebar-head {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+.sidebar-head h2 {
+  font-family: 'Roboto Condensed', helvetica, arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--grey-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sidebar-head h2 em {
+  font-style: normal;
+  font-family: 'Roboto', helvetica, arial, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--ocha-blue);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 2px;
+  margin-left: 6px;
+  text-transform: none;
+  letter-spacing: 0;
+  vertical-align: 1px;
+}
+
+/* Year + layer controls */
+.ctrl-row {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  gap: 4px;
+}
+.ctrl-row button {
+  padding: 4px 10px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  font-family: inherit;
+}
+.ctrl-row button:hover {
+  background: var(--grey-light);
+}
+.ctrl-row button.on {
+  background: var(--ocha-blue);
+  color: #fff;
+  border-color: var(--ocha-blue);
+}
+
+.layer-row {
+  padding: 4px 12px 6px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  gap: 1px;
+  background: var(--grey-light);
+}
+.layer-row button {
+  flex: 1;
+  padding: 3px 2px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: center;
+  font-family: inherit;
+}
+.layer-row button:hover {
+  background: var(--white);
+}
+.layer-row button.on {
+  background: var(--white);
+  color: var(--ocha-blue);
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* Crisis list — data table style */
+.crisis-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.crisis-list::-webkit-scrollbar { width: 4px; }
+.crisis-list::-webkit-scrollbar-track { background: transparent; }
+.crisis-list::-webkit-scrollbar-thumb { background: #ccc; }
+
+.crisis-item {
+  padding: 7px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light);
+  border-left: 3px solid transparent;
+}
+.crisis-item:hover {
+  background: #f8f8f8;
+}
+.crisis-item.sel {
+  background: var(--blue-grey);
+  border-left-color: var(--ocha-blue-mid);
+}
+.ci-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.ci-country {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ci-flag {
+  width: 22px;
+  height: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 1px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.7) inset;
+  flex-shrink: 0;
+}
+.ci-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ci-rank {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.ci-val {
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.ci-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.ci-meta span + span { margin-left: 8px; }
+
+/* Detail panel */
+.detail-panel {
+  position: fixed;
+  top: 83px; right: 0; bottom: 32px;
+  z-index: 35;
+  width: 370px;
+  background: var(--white);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+  box-shadow: -2px 0 6px rgba(0,0,0,0.05);
+}
+.detail-panel.open { transform: translateX(0); }
+
+.detail-head {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.detail-head h3 {
+  font-family: 'Roboto Condensed', helvetica, arial, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--grey-dark);
+}
+.detail-head .sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 1px;
+}
+.close-btn {
+  width: 24px; height: 24px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--white);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+}
+.close-btn:hover { background: var(--grey-light); color: var(--text); }
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+.detail-body::-webkit-scrollbar { width: 4px; }
+.detail-body::-webkit-scrollbar-track { background: transparent; }
+.detail-body::-webkit-scrollbar-thumb { background: #ccc; }
+
+/* KPI grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.kpi {
+  padding: 10px;
+  border: 1px solid var(--border-light);
+}
+.kpi-left-red { border-left: 3px solid var(--red); }
+.kpi-left-orange { border-left: 3px solid var(--orange); }
+.kpi-left-blue { border-left: 3px solid var(--ocha-blue-mid); }
+.kpi-left-green { border-left: 3px solid var(--green); }
+.kpi .label {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+.kpi .value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--grey-dark);
+  line-height: 1.2;
+}
+.kpi .sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+/* Section label */
+.sec-label {
+  font-family: 'Roboto Condensed', helvetica, arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* Decomposition bars */
+.decomp { margin-bottom: 16px; }
+.dbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.dbar .dl { font-size: 12px; color: var(--text-secondary); width: 85px; flex-shrink: 0; }
+.dbar .dt { flex: 1; height: 5px; background: var(--grey-light); overflow: hidden; }
+.dbar .df { height: 100%; }
+.dbar .dv { font-size: 12px; width: 42px; text-align: right; flex-shrink: 0; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* Charts */
+.chart-box {
+  margin-bottom: 16px;
+  padding: 10px;
+  border: 1px solid var(--border-light);
+}
+.chart-box canvas { max-height: 150px; }
+
+/* Funding allocation */
+.fund-alloc { margin-bottom: 16px; }
+.fund-bar {
+  height: 12px;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+.fund-bar .funded { background: var(--green); }
+.fund-bar .gap { flex: 1; background: var(--grey-light); }
+.fund-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+/* Formula */
+.formula {
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--grey-light);
+  border: 1px solid var(--border-light);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.formula .fh {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.formula .m { color: var(--text-muted); }
+.formula .r { font-weight: 700; }
+
+/* Bottom bar */
+.bottom-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 40;
+  height: 32px;
+  background: var(--white);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  gap: 0;
+}
+.st {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 0 14px;
+  border-right: 1px solid var(--border-light);
+}
+.st:last-child { border-right: none; }
+.st strong {
+  color: var(--text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Legend */
+.legend {
+  position: fixed;
+  bottom: 40px; right: 8px;
+  z-index: 40;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  font-size: 10px;
+  color: var(--text-secondary);
+  background: var(--white);
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.lg { width: 16px; height: 7px; }
+
+/* Mapbox overrides */
+.mapboxgl-popup-content {
+  background: #fff !important;
+  border: 1px solid #d4d4d4 !important;
+  border-radius: 3px !important;
+  color: #4a4a4a !important;
+  padding: 10px 12px !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12) !important;
+  min-width: 180px;
+  font-family: 'Roboto', helvetica, arial, sans-serif !important;
+  font-size: 13px;
+}
+.mapboxgl-popup-tip { border-top-color: #fff !important; }
+.mapboxgl-popup-close-button { color: #999 !important; font-size: 16px !important; right: 4px !important; top: 2px !important; }
+.mapboxgl-popup-close-button:hover { color: #4a4a4a !important; background: none !important; }
+.mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { opacity: 0.5; }
+.mapboxgl-ctrl-group { border-radius: 3px !important; box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important; border: 1px solid #d4d4d4 !important; }
+.mapboxgl-ctrl-group button { border-bottom: 1px solid #e8e8e8 !important; }
+
+/* Loading */
+.loading-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: var(--grey-light);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+.loading-overlay.hidden { opacity: 0; }
+.loading-spin {
+  width: 24px; height: 24px;
+  border: 2px solid var(--border);
+  border-top-color: var(--ocha-blue-mid);
+  border-radius: 50%;
+  animation: sp 0.8s linear infinite;
+  margin-bottom: 8px;
+}
+@keyframes sp { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+  <div class="loading-spin"></div>
+  <div style="font-size:13px;color:#646464">Loading crisis data</div>
+</div>
+
+<!-- OCHA global header bar -->
+<div class="ocha-bar">
+  <div class="ocha-bar-left">
+    <svg width="20" height="12" viewBox="0 0 50 30" fill="none"><ellipse cx="25" cy="15" rx="24" ry="14" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" fill="none"/><path d="M13 15 Q25 3 37 15 Q25 27 13 15Z" fill="rgba(255,255,255,0.4)"/></svg>
+    <span class="ocha-bar-label">United Nations Office for the Coordination of Humanitarian Affairs</span>
+  </div>
+  <span style="font-size:11px">CrisisLens Data Explorer</span>
+</div>
+
+<!-- Site header -->
+<header class="site-header">
+  <div class="site-title">
+    <h1>CrisisLens</h1>
+    <span>Overlooked Crisis Index</span>
+  </div>
+  <div class="site-meta">Hacklytics 2026 &middot; Databricks &times; OCHA Challenge</div>
+</header>
+
+<div id="map"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-head">
+    <h2>Crisis Monitor<em id="crisis-count">24</em></h2>
+  </div>
+  <div class="ctrl-row">
+    <button class="on" data-year="2026">2026</button>
+    <button data-year="2025">2025</button>
+    <button data-year="2024">2024</button>
+  </div>
+  <div class="layer-row">
+    <button class="on" data-layer="oci">OCI Score</button>
+    <button data-layer="gap">Funding Gap</button>
+    <button data-layer="pin">People in Need</button>
+    <button data-layer="media">Media Neglect</button>
+  </div>
+  <div class="crisis-list" id="crisis-list"></div>
+</div>
+
+<!-- Detail panel -->
+<div class="detail-panel" id="detail-panel">
+  <div class="detail-head">
+    <div>
+      <h3 id="detail-country">&mdash;</h3>
+      <div class="sub" id="detail-plan">&mdash;</div>
+    </div>
+    <button class="close-btn" id="close-detail">&times;</button>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- Legend -->
+<div class="legend" id="legend">
+  <span style="margin-right:3px">Low</span>
+  <div class="lg" style="background:#7fb92f"></div>
+  <div class="lg" style="background:#a8c648"></div>
+  <div class="lg" style="background:#db7b18"></div>
+  <div class="lg" style="background:#d45b27"></div>
+  <div class="lg" style="background:#cd3a1f"></div>
+  <div class="lg" style="background:#8b1a10"></div>
+  <span style="margin-left:3px">High</span>
+  <span style="margin-left:6px;font-weight:500" id="legend-label">OCI Score</span>
+</div>
+
+<!-- Bottom stats -->
+<div class="bottom-bar" id="stats-bar"></div>
+
+<script>
+const OCI_DATA = [
+  {iso:"SDN",year:2026,name:"Sudan",plan:"Sudan HRP 2026",pin_k:33699.77,pop:47514529,req:2866.23,fund:373.13,pin_norm:0.7093,sev:1.0,gap:0.8698,media:0.4658,oci:0.8513,rank:4,severity:5},
+  {iso:"SDN",year:2025,name:"Sudan",plan:"Sudan HRP 2025",pin_k:30440.77,pop:47514529,req:4162.52,fund:1630.36,pin_norm:0.6407,sev:1.0,gap:0.6083,media:0.4658,oci:0.5364,rank:9,severity:5},
+  {iso:"SDN",year:2024,name:"Sudan",plan:"Sudan HRP 2024",pin_k:24786.37,pop:47514529,req:2695.68,fund:1906.85,pin_norm:0.5217,sev:0.8,gap:0.2926,media:0.4658,oci:0.1655,rank:31,severity:4},
+  {iso:"COD",year:2024,name:"DR Congo",plan:"DRC HRP 2024",pin_k:25397.90,pop:103199358,req:2580.63,fund:1322.48,pin_norm:0.2461,sev:0.4,gap:0.4875,media:0.0,oci:0.0571,rank:50,severity:2},
+  {iso:"COD",year:2025,name:"DR Congo",plan:"DRC HRP 2025",pin_k:21241.77,pop:103199358,req:2538.02,fund:669.86,pin_norm:0.2058,sev:0.4,gap:0.7361,media:0.0,oci:0.0731,rank:45,severity:2},
+  {iso:"COD",year:2026,name:"DR Congo",plan:"DRC HRP 2026",pin_k:14940.73,pop:103199358,req:1403.72,fund:144.54,pin_norm:0.1448,sev:0.4,gap:0.8970,media:0.0,oci:0.0621,rank:48,severity:2},
+  {iso:"AFG",year:2024,name:"Afghanistan",plan:"Afghanistan HRP 2024",pin_k:23666.39,pop:40411869,req:3059.59,fund:1583.51,pin_norm:0.5856,sev:1.0,gap:0.4824,media:0.7493,oci:0.4081,rank:12,severity:5},
+  {iso:"AFG",year:2025,name:"Afghanistan",plan:"Afghanistan HRP 2025",pin_k:22887.73,pop:40411869,req:2416.81,fund:1006.70,pin_norm:0.5664,sev:1.0,gap:0.5835,media:0.7493,oci:0.4780,rank:10,severity:5},
+  {iso:"YEM",year:2026,name:"Yemen",plan:"Yemen HRP 2026",pin_k:23100.0,pop:34449825,req:2470.0,fund:171.83,pin_norm:0.6705,sev:1.0,gap:0.9304,media:0.8069,oci:0.9150,rank:3,severity:5},
+  {iso:"YEM",year:2025,name:"Yemen",plan:"Yemen HRP 2025",pin_k:19540.22,pop:34449825,req:2478.77,fund:705.93,pin_norm:0.5672,sev:1.0,gap:0.7152,media:0.8069,oci:0.5936,rank:8,severity:5},
+  {iso:"YEM",year:2024,name:"Yemen",plan:"Yemen HRP 2024",pin_k:18182.66,pop:34449825,req:2705.76,fund:1527.53,pin_norm:0.5278,sev:0.8,gap:0.4355,media:0.8069,oci:0.2670,rank:22,severity:4},
+  {iso:"ETH",year:2024,name:"Ethiopia",plan:"Ethiopia HRP 2024",pin_k:21360.48,pop:102536651,req:3235.78,fund:1004.08,pin_norm:0.2083,sev:0.4,gap:0.6897,media:0.4190,oci:0.0752,rank:44,severity:2},
+  {iso:"SYR",year:2024,name:"Syria",plan:"Syria HRP 2024",pin_k:16661.47,pop:23227014,req:4074.16,fund:1483.22,pin_norm:0.7173,sev:1.0,gap:0.6359,media:0.7617,oci:0.6628,rank:6,severity:5},
+  {iso:"SYR",year:2026,name:"Syria",plan:"Syria HRP 2026",pin_k:16500.0,pop:23227014,req:3190.0,fund:161.80,pin_norm:0.7104,sev:1.0,gap:0.9493,media:0.7617,oci:0.9816,rank:2,severity:5},
+  {iso:"MMR",year:2024,name:"Myanmar",plan:"Myanmar HRP 2024",pin_k:18590.02,pop:54179306,req:993.55,fund:402.44,pin_norm:0.3431,sev:0.6,gap:0.5949,media:0.0045,oci:0.1517,rank:33,severity:3},
+  {iso:"MMR",year:2026,name:"Myanmar",plan:"Myanmar HRP 2026",pin_k:16229.05,pop:54179306,req:889.60,fund:62.18,pin_norm:0.2995,sev:0.6,gap:0.9301,media:0.0045,oci:0.2084,rank:26,severity:3},
+  {iso:"MMR",year:2025,name:"Myanmar",plan:"Myanmar HRP 2025",pin_k:1957.17,pop:54179306,req:1137.81,fund:200.05,pin_norm:0.0361,sev:0.2,gap:0.8242,media:0.0045,oci:0.0038,rank:61,severity:1},
+  {iso:"UKR",year:2024,name:"Ukraine",plan:"Ukraine HRP 2024",pin_k:14622.30,pop:37000000,req:3107.70,fund:2395.70,pin_norm:0.3952,sev:0.8,gap:0.2291,media:0.1011,oci:0.0899,rank:41,severity:4},
+  {iso:"UKR",year:2025,name:"Ukraine",plan:"Ukraine HRP 2025",pin_k:12708.87,pop:37000000,req:2633.53,fund:1532.25,pin_norm:0.3435,sev:0.6,gap:0.4182,media:0.1011,oci:0.1077,rank:38,severity:3},
+  {iso:"UKR",year:2026,name:"Ukraine",plan:"Ukraine HRP 2026",pin_k:10849.70,pop:37000000,req:2303.96,fund:310.09,pin_norm:0.2932,sev:0.6,gap:0.8654,media:0.1011,oci:0.1932,rank:28,severity:3},
+  {iso:"SSD",year:2026,name:"South Sudan",plan:"South Sudan HRP 2026",pin_k:9913.86,pop:12394970,req:1463.05,fund:153.43,pin_norm:0.7998,sev:1.0,gap:0.8951,media:0.5285,oci:1.0,rank:1,severity:5},
+  {iso:"SSD",year:2025,name:"South Sudan",plan:"South Sudan HRP 2025",pin_k:9290.09,pop:12394970,req:1694.78,fund:713.32,pin_norm:0.7495,sev:1.0,gap:0.5791,media:0.5285,oci:0.6048,rank:7,severity:5},
+  {iso:"SSD",year:2024,name:"South Sudan",plan:"South Sudan HRP 2024",pin_k:8996.99,pop:12394970,req:1788.82,fund:1283.92,pin_norm:0.7259,sev:1.0,gap:0.2823,media:0.5285,oci:0.2835,rank:20,severity:5},
+  {iso:"COL",year:2025,name:"Colombia",plan:"RMRP 2025",pin_k:9053.35,pop:53216592,req:467.23,fund:45.94,pin_norm:0.1701,sev:0.4,gap:0.9017,media:0.8639,oci:0.0875,rank:42,severity:2},
+  {iso:"COL",year:2024,name:"Colombia",plan:"RMRP 2024",pin_k:8307.13,pop:53216592,req:575.87,fund:169.88,pin_norm:0.1561,sev:0.4,gap:0.7050,media:0.8639,oci:0.0617,rank:49,severity:2},
+  {iso:"COL",year:2026,name:"Colombia",plan:"Colombia HRP 2026",pin_k:6900.0,pop:53216592,req:286.97,fund:15.58,pin_norm:0.1297,sev:0.4,gap:0.9457,media:0.8639,oci:0.0691,rank:46,severity:2},
+  {iso:"NGA",year:2024,name:"Nigeria",plan:"Nigeria HRP 2024",pin_k:7945.36,pop:216798930,req:926.54,fund:555.80,pin_norm:0.0366,sev:0.2,gap:0.4001,media:0.0977,oci:0.0,rank:65,severity:1},
+  {iso:"NGA",year:2025,name:"Nigeria",plan:"Nigeria HRP 2025",pin_k:7847.05,pop:216798930,req:910.25,fund:284.69,pin_norm:0.0362,sev:0.2,gap:0.6872,media:0.0977,oci:0.0026,rank:64,severity:1},
+  {iso:"NGA",year:2026,name:"Nigeria",plan:"Nigeria HRP 2026",pin_k:5900.0,pop:216798930,req:516.40,fund:39.79,pin_norm:0.0272,sev:0.2,gap:0.9230,media:0.0977,oci:0.0027,rank:63,severity:1},
+  {iso:"VEN",year:2025,name:"Venezuela",plan:"Venezuela HRP 2025",pin_k:7943.72,pop:27225775,req:606.50,fund:118.23,pin_norm:0.2918,sev:0.6,gap:0.8051,media:0.8058,oci:0.2037,rank:27,severity:3},
+  {iso:"VEN",year:2026,name:"Venezuela",plan:"Venezuela HRP 2026",pin_k:7900.0,pop:27225775,req:606.0,fund:22.55,pin_norm:0.2902,sev:0.6,gap:0.9628,media:0.8058,oci:0.2430,rank:24,severity:3},
+  {iso:"VEN",year:2024,name:"Venezuela",plan:"Venezuela HRP 2024",pin_k:7581.48,pop:27225775,req:617.03,fund:177.42,pin_norm:0.2785,sev:0.6,gap:0.7125,media:0.8058,oci:0.1715,rank:29,severity:3},
+  {iso:"MLI",year:2024,name:"Mali",plan:"Mali HRP 2024",pin_k:7107.19,pop:17907114,req:701.57,fund:309.56,pin_norm:0.3969,sev:0.8,gap:0.5588,media:0.9153,oci:0.2624,rank:23,severity:4},
+  {iso:"MLI",year:2025,name:"Mali",plan:"Mali HRP 2025",pin_k:6431.53,pop:17907114,req:771.31,fund:189.70,pin_norm:0.3592,sev:0.8,gap:0.7541,media:0.9153,oci:0.3212,rank:18,severity:4},
+  {iso:"MLI",year:2026,name:"Mali",plan:"Mali HRP 2026",pin_k:5100.0,pop:17907114,req:577.87,fund:46.53,pin_norm:0.2848,sev:0.6,gap:0.9195,media:0.9153,oci:0.2319,rank:25,severity:3},
+  {iso:"TCD",year:2025,name:"Chad",plan:"Chad HRP 2025",pin_k:7049.23,pop:18033749,req:1454.26,fund:436.51,pin_norm:0.3909,sev:0.8,gap:0.6998,media:0.9577,oci:0.3269,rank:17,severity:4},
+  {iso:"TCD",year:2024,name:"Chad",plan:"Chad HRP 2024",pin_k:6009.72,pop:18033749,req:1124.57,fund:639.89,pin_norm:0.3332,sev:0.6,gap:0.4310,media:0.9577,oci:0.1264,rank:37,severity:3},
+  {iso:"TCD",year:2026,name:"Chad",plan:"Chad HRP 2026",pin_k:4509.01,pop:18033749,req:986.07,fund:65.29,pin_norm:0.2500,sev:0.4,gap:0.9338,media:0.9577,oci:0.1373,rank:35,severity:2},
+  {iso:"SOM",year:2024,name:"Somalia",plan:"Somalia HRP 2024",pin_k:6869.72,pop:12327528,req:1585.26,fund:896.56,pin_norm:0.5573,sev:1.0,gap:0.4344,media:0.8752,oci:0.3569,rank:16,severity:5},
+  {iso:"SOM",year:2025,name:"Somalia",plan:"Somalia HRP 2025",pin_k:5979.74,pop:12327528,req:1421.99,fund:411.98,pin_norm:0.4851,sev:0.8,gap:0.7103,media:0.8752,oci:0.4069,rank:13,severity:4},
+  {iso:"SOM",year:2026,name:"Somalia",plan:"Somalia HRP 2026",pin_k:4796.04,pop:12327528,req:852.0,fund:113.20,pin_norm:0.3891,sev:0.8,gap:0.8671,media:0.8752,oci:0.3983,rank:14,severity:4},
+  {iso:"HTI",year:2026,name:"Haiti",plan:"Haiti HRP 2026",pin_k:6414.19,pop:11899555,req:880.33,fund:32.18,pin_norm:0.5390,sev:1.0,gap:0.9634,media:0.2349,oci:0.6857,rank:5,severity:5},
+  {iso:"HTI",year:2025,name:"Haiti",plan:"Haiti HRP 2025",pin_k:5986.46,pop:11899555,req:908.16,fund:236.38,pin_norm:0.5031,sev:0.8,gap:0.7397,media:0.2349,oci:0.3914,rank:15,severity:4},
+  {iso:"HTI",year:2024,name:"Haiti",plan:"Haiti HRP 2024",pin_k:5500.0,pop:11899555,req:673.77,fund:297.13,pin_norm:0.4622,sev:0.8,gap:0.5590,media:0.2349,oci:0.2706,rank:21,severity:4},
+  {iso:"BFA",year:2024,name:"Burkina Faso",plan:"Burkina Faso HRP 2024",pin_k:6293.94,pop:23558491,req:934.60,fund:429.96,pin_norm:0.2672,sev:0.6,gap:0.5400,media:0.9447,oci:0.1267,rank:36,severity:3},
+  {iso:"BFA",year:2025,name:"Burkina Faso",plan:"Burkina Faso HRP 2025",pin_k:5915.14,pop:23558491,req:792.57,fund:272.68,pin_norm:0.2511,sev:0.6,gap:0.6559,media:0.9447,oci:0.1452,rank:34,severity:3},
+  {iso:"BFA",year:2026,name:"Burkina Faso",plan:"Burkina Faso HRP 2026",pin_k:4400.0,pop:23558491,req:658.49,fund:57.96,pin_norm:0.1868,sev:0.4,gap:0.9120,media:0.9447,oci:0.0989,rank:40,severity:2},
+  {iso:"CAF",year:2024,name:"Central African Republic",plan:"CAR HRP 2024",pin_k:2801.81,pop:5742315,req:367.67,fund:259.46,pin_norm:0.4879,sev:0.8,gap:0.2943,media:1.0,oci:0.1710,rank:30,severity:4},
+  {iso:"CAF",year:2025,name:"Central African Republic",plan:"CAR HRP 2025",pin_k:2440.34,pop:5742315,req:326.06,fund:125.58,pin_norm:0.4250,sev:0.8,gap:0.6149,media:1.0,oci:0.3143,rank:19,severity:4},
+  {iso:"CAF",year:2026,name:"Central African Republic",plan:"CAR HRP 2026",pin_k:2287.0,pop:5742315,req:264.10,fund:29.37,pin_norm:0.3983,sev:0.8,gap:0.8888,media:1.0,oci:0.4271,rank:11,severity:4},
+  {iso:"HND",year:2024,name:"Honduras",plan:"Honduras HRP 2024",pin_k:2800.0,pop:9892674,req:203.16,fund:65.37,pin_norm:0.2830,sev:0.6,gap:0.6783,media:0.5483,oci:0.1583,rank:32,severity:3},
+  {iso:"HND",year:2025,name:"Honduras",plan:"Honduras HRP 2025",pin_k:1640.22,pop:9892674,req:138.49,fund:15.58,pin_norm:0.1658,sev:0.4,gap:0.8875,media:0.5483,oci:0.0790,rank:43,severity:2},
+  {iso:"NER",year:2024,name:"Niger",plan:"Niger HRP 2024",pin_k:4500.0,pop:26367847,req:662.19,fund:363.39,pin_norm:0.1707,sev:0.4,gap:0.4512,media:0.8442,oci:0.0419,rank:52,severity:2},
+  {iso:"NER",year:2025,name:"Niger",plan:"Niger HRP 2025",pin_k:2580.33,pop:26367847,req:603.03,fund:156.82,pin_norm:0.0979,sev:0.2,gap:0.7400,media:0.8442,oci:0.0177,rank:57,severity:1},
+  {iso:"NER",year:2026,name:"Niger",plan:"Niger HRP 2026",pin_k:2600.0,pop:26367847,req:449.0,fund:50.58,pin_norm:0.0986,sev:0.2,gap:0.8873,media:0.8442,oci:0.0221,rank:55,severity:1},
+  {iso:"CMR",year:2024,name:"Cameroon",plan:"Cameroon HRP 2024",pin_k:3369.53,pop:29442318,req:371.37,fund:170.11,pin_norm:0.1144,sev:0.2,gap:0.5420,media:0.9853,oci:0.0150,rank:59,severity:1},
+  {iso:"CMR",year:2025,name:"Cameroon",plan:"Cameroon HRP 2025",pin_k:3322.06,pop:29442318,req:359.30,fund:84.32,pin_norm:0.1128,sev:0.2,gap:0.7653,media:0.9853,oci:0.0224,rank:54,severity:1},
+  {iso:"CMR",year:2026,name:"Cameroon",plan:"Cameroon HRP 2026",pin_k:2900.0,pop:29442318,req:308.0,fund:20.27,pin_norm:0.0985,sev:0.2,gap:0.9342,media:0.9853,oci:0.0241,rank:53,severity:1},
+  {iso:"MOZ",year:2024,name:"Mozambique",plan:"Mozambique HRP 2024",pin_k:2252.97,pop:35163992,req:413.42,fund:175.61,pin_norm:0.0641,sev:0.2,gap:0.5752,media:0.9972,oci:0.0074,rank:60,severity:1},
+  {iso:"MOZ",year:2025,name:"Mozambique",plan:"Mozambique HRP 2025",pin_k:1305.03,pop:35163992,req:352.10,fund:122.91,pin_norm:0.0371,sev:0.2,gap:0.6509,media:0.9972,oci:0.0036,rank:62,severity:1},
+  {iso:"MOZ",year:2026,name:"Mozambique",plan:"Mozambique HRP 2026",pin_k:2356.16,pop:35163992,req:534.34,fund:26.19,pin_norm:0.0670,sev:0.2,gap:0.9510,media:0.9972,oci:0.0156,rank:58,severity:1},
+  {iso:"GTM",year:2024,name:"Guatemala",plan:"Guatemala HRP 2024",pin_k:5300.0,pop:17843132,req:125.40,fund:66.73,pin_norm:0.2970,sev:0.6,gap:0.4679,media:0.2671,oci:0.1076,rank:39,severity:3},
+  {iso:"GTM",year:2025,name:"Guatemala",plan:"Guatemala HRP 2025",pin_k:2163.95,pop:17843132,req:100.56,fund:24.99,pin_norm:0.1213,sev:0.2,gap:0.7515,media:0.2671,oci:0.0206,rank:56,severity:1},
+  {iso:"SLV",year:2024,name:"El Salvador",plan:"El Salvador HRP 2024",pin_k:1119.20,pop:6350969,req:86.59,fund:26.11,pin_norm:0.1762,sev:0.4,gap:0.6985,media:0.5302,oci:0.0653,rank:47,severity:2},
+  {iso:"SLV",year:2025,name:"El Salvador",plan:"El Salvador HRP 2025",pin_k:818.70,pop:6350969,req:66.92,fund:18.64,pin_norm:0.1289,sev:0.4,gap:0.7214,media:0.5302,oci:0.0484,rank:51,severity:2},
+];
+
+const COUNTRY_CENTERS = {
+  SDN:[30.0,-15.0],
+  COD:[23.66,-2.88], AFG:[66.0,33.0], YEM:[48.0,15.55], ETH:[39.5,8.0],
+  SYR:[38.5,35.0], MMR:[96.0,21.0], UKR:[32.0,49.0], SSD:[31.6,7.0],
+  COL:[-74.0,4.6], NGA:[8.0,9.0], VEN:[-66.9,10.5], MLI:[-2.0,17.0],
+  TCD:[18.7,15.4], SOM:[46.0,5.15], HTI:[-72.3,19.0], BFA:[-1.5,12.3],
+  CAF:[20.9,6.6], HND:[-86.6,14.1], NER:[8.1,17.6], CMR:[12.4,5.95],
+  MOZ:[35.5,-18.7], GTM:[-90.2,15.5], SLV:[-88.9,13.7]
+};
+COUNTRY_CENTERS.SDN = [30.0, 15.5];
+
+const ISO3_TO_ISO2 = {
+  SDN:'sd', COD:'cd', AFG:'af', YEM:'ye', ETH:'et', SYR:'sy', MMR:'mm', UKR:'ua',
+  SSD:'ss', COL:'co', NGA:'ng', VEN:'ve', MLI:'ml', TCD:'td', SOM:'so', HTI:'ht',
+  BFA:'bf', CAF:'cf', HND:'hn', NER:'ne', CMR:'cm', MOZ:'mz', GTM:'gt', SLV:'sv'
+};
+
+let selectedYear = 2026;
+let selectedLayer = 'oci';
+let selectedCountry = null;
+let fundingChart = null;
+let decompChart = null;
+
+function getYearData(year) {
+  return OCI_DATA.filter(d => d.year === year).sort((a,b) => a.rank - b.rank);
+}
+function getCountryHistory(iso) {
+  return OCI_DATA.filter(d => d.iso === iso).sort((a,b) => a.year - b.year);
+}
+function getLayerValue(d) {
+  if (selectedLayer === 'oci') return d.oci;
+  if (selectedLayer === 'gap') return d.gap;
+  if (selectedLayer === 'pin') return Math.min(d.pin_norm * 1.5, 1.0);
+  if (selectedLayer === 'media') return d.media;
+  return d.oci;
+}
+function getLayerLabel() {
+  const labels = { oci:'OCI Score', gap:'Funding Gap', pin:'People in Need', media:'Media Neglect' };
+  return labels[selectedLayer] || 'OCI Score';
+}
+function valToColor(v) {
+  if (v <= 0.2) return '#7fb92f';
+  if (v <= 0.4) return '#a8c648';
+  if (v <= 0.55) return '#db7b18';
+  if (v <= 0.7) return '#d45b27';
+  if (v <= 0.85) return '#cd3a1f';
+  return '#8b1a10';
+}
+function fmtM(v) { return v >= 1000 ? (v/1000).toFixed(1)+'B' : v.toFixed(0)+'M'; }
+function fmtK(v) { return v >= 1000 ? (v/1000).toFixed(1)+'M' : v.toFixed(0)+'K'; }
+function fmtPct(v) { return (v*100).toFixed(1)+'%'; }
+function getFlagUrl(iso3) {
+  const iso2 = ISO3_TO_ISO2[iso3];
+  return iso2 ? 'https://flagcdn.com/h20/' + iso2 + '.png' : '';
+}
+
+mapboxgl.accessToken = 'pk.eyJ1IjoicmFhbWlhIiwiYSI6ImNta3J1NWgxaDE1cWszZHEwZmlwbW1ucHUifQ.zbeIUNvE9rfsCU-0b9Db4A';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/light-v11',
+  center: [20, 10],
+  zoom: 2.3,
+  pitch: 0,
+  bearing: 0,
+  antialias: true,
+  projection: 'mercator'
+});
+
+map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+map.on('load', () => {
+  document.getElementById('loading').classList.add('hidden');
+
+  map.addSource('countries', { type: 'vector', url: 'mapbox://mapbox.country-boundaries-v1' });
+
+  map.addLayer({
+    id: 'crisis-choropleth', type: 'fill', source: 'countries', 'source-layer': 'country_boundaries',
+    paint: { 'fill-color': '#cd3a1f', 'fill-opacity': 0.6 },
+    filter: ['in', 'iso_3166_1_alpha_3', '']
+  }, 'admin-1-boundary');
+
+  map.addLayer({
+    id: 'crisis-outline', type: 'line', source: 'countries', 'source-layer': 'country_boundaries',
+    paint: { 'line-color': '#FFFFFF', 'line-width': 1, 'line-opacity': 0.6 },
+    filter: ['in', 'iso_3166_1_alpha_3', '']
+  }, 'admin-1-boundary');
+
+  map.addLayer({
+    id: 'crisis-selected', type: 'line', source: 'countries', 'source-layer': 'country_boundaries',
+    paint: { 'line-color': '#1f69b3', 'line-width': 2.5, 'line-opacity': 1 },
+    filter: ['==', 'iso_3166_1_alpha_3', '']
+  });
+
+  map.addSource('crisis-points', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+
+  map.addLayer({
+    id: 'crisis-circles', type: 'circle', source: 'crisis-points',
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'oci'], 0, 5, 0.5, 12, 1.0, 20],
+      'circle-color': ['get', 'color'],
+      'circle-opacity': 0.75,
+      'circle-stroke-color': '#FFFFFF',
+      'circle-stroke-width': 1.5,
+      'circle-stroke-opacity': 0.8
+    }
+  });
+
+  map.addLayer({
+    id: 'crisis-labels', type: 'symbol', source: 'crisis-points',
+    layout: {
+      'text-field': ['get', 'iso'], 'text-size': 10,
+      'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+      'text-offset': [0, -2.0], 'text-allow-overlap': false
+    },
+    paint: { 'text-color': '#4a4a4a', 'text-halo-color': 'rgba(255,255,255,0.85)', 'text-halo-width': 1.2 }
+  });
+
+  map.on('click', 'crisis-circles', (e) => {
+    if (e.features.length > 0) selectCountry(e.features[0].properties.iso);
+  });
+  map.on('click', 'crisis-choropleth', (e) => {
+    if (e.features.length > 0) {
+      const iso = e.features[0].properties.iso_3166_1_alpha_3;
+      if (OCI_DATA.some(d => d.iso === iso && d.year === selectedYear)) selectCountry(iso);
+    }
+  });
+
+  map.on('mouseenter', 'crisis-circles', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'crisis-circles', () => { map.getCanvas().style.cursor = ''; });
+  map.on('mouseenter', 'crisis-choropleth', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'crisis-choropleth', () => { map.getCanvas().style.cursor = ''; });
+
+  const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 15 });
+  map.on('mousemove', 'crisis-circles', (e) => {
+    if (e.features.length > 0) {
+      const p = e.features[0].properties;
+      popup.setLngLat(e.lngLat).setHTML(
+        '<div style="font-weight:500;margin-bottom:3px">'+p.name+'</div>'+
+        '<div style="font-size:12px;color:#646464;line-height:1.6">'+
+        'OCI: <strong>'+Number(p.oci).toFixed(3)+'</strong> (rank #'+p.rank+')<br>'+
+        'Funding gap: <strong>'+(Number(p.gap)*100).toFixed(1)+'%</strong><br>'+
+        'People in need: <strong>'+fmtK(Number(p.pin_k))+'</strong><br>'+
+        'Media neglect: <strong>'+(Number(p.media)*100).toFixed(0)+'%</strong></div>'
+      ).addTo(map);
+    }
+  });
+  map.on('mouseleave', 'crisis-circles', () => popup.remove());
+
+  updateMap();
+  renderSidebar();
+  updateStats();
+});
+
+function updateMap() {
+  const data = getYearData(selectedYear);
+  const isos = data.map(d => d.iso);
+
+  const colorExpr = ['match', ['get', 'iso_3166_1_alpha_3']];
+  data.forEach(d => { colorExpr.push(d.iso, valToColor(getLayerValue(d))); });
+  colorExpr.push('rgba(0,0,0,0)');
+
+  const opacityExpr = ['match', ['get', 'iso_3166_1_alpha_3']];
+  data.forEach(d => { opacityExpr.push(d.iso, 0.2 + getLayerValue(d) * 0.5); });
+  opacityExpr.push(0);
+
+  map.setFilter('crisis-choropleth', ['in', 'iso_3166_1_alpha_3', ...isos]);
+  map.setPaintProperty('crisis-choropleth', 'fill-color', colorExpr);
+  map.setPaintProperty('crisis-choropleth', 'fill-opacity', opacityExpr);
+  map.setFilter('crisis-outline', ['in', 'iso_3166_1_alpha_3', ...isos]);
+
+  const features = data.map(d => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: COUNTRY_CENTERS[d.iso] || [0,0] },
+    properties: { iso: d.iso, name: d.name, oci: d.oci, rank: d.rank, gap: d.gap, pin_k: d.pin_k, media: d.media, color: valToColor(getLayerValue(d)) }
+  }));
+  map.getSource('crisis-points').setData({ type: 'FeatureCollection', features });
+  document.getElementById('legend-label').textContent = getLayerLabel();
+}
+
+function renderSidebar() {
+  const data = getYearData(selectedYear);
+  const list = document.getElementById('crisis-list');
+  document.getElementById('crisis-count').textContent = data.length;
+
+  list.innerHTML = data.map(d => {
+    const sel = selectedCountry === d.iso;
+    const flagUrl = getFlagUrl(d.iso);
+    return '<div class="crisis-item'+(sel?' sel':'')+'" data-iso="'+d.iso+'">'+
+      '<div class="ci-row">'+
+        '<div class="ci-country">'+
+          '<img class="ci-flag" src="'+flagUrl+'" alt="'+d.name+' flag" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
+          '<div class="ci-name"><span class="ci-rank">'+d.rank+'.</span> '+d.name+'</div>'+
+        '</div>'+
+        '<div class="ci-val">'+d.oci.toFixed(3)+'</div>'+
+      '</div>'+
+      '<div class="ci-meta"><span>Gap '+fmtPct(d.gap)+'</span><span>PIN '+fmtK(d.pin_k)+'</span><span>Sev '+d.severity+'/5</span></div>'+
+    '</div>';
+  }).join('');
+
+  list.querySelectorAll('.crisis-item').forEach(el => {
+    el.addEventListener('click', () => selectCountry(el.dataset.iso));
+  });
+}
+
+function selectCountry(iso) {
+  selectedCountry = iso;
+  map.setFilter('crisis-selected', ['==', 'iso_3166_1_alpha_3', iso]);
+  const center = COUNTRY_CENTERS[iso];
+  if (center) map.flyTo({ center, zoom: 4.5, duration: 1200 });
+
+  document.querySelectorAll('.crisis-item').forEach(el => {
+    el.classList.toggle('sel', el.dataset.iso === iso);
+  });
+
+  const d = OCI_DATA.find(r => r.iso === iso && r.year === selectedYear);
+  if (!d) return;
+
+  document.getElementById('detail-country').textContent = d.name;
+  document.getElementById('detail-plan').textContent = d.plan + ' \u2014 Rank #' + d.rank + ' of 65';
+
+  const body = document.getElementById('detail-body');
+  body.innerHTML =
+    '<div class="kpi-grid">'+
+      '<div class="kpi '+(d.oci>0.7?'kpi-left-red':d.oci>0.3?'kpi-left-orange':'kpi-left-blue')+'">'+
+        '<div class="label">OCI Score</div><div class="value">'+d.oci.toFixed(3)+'</div><div class="sub">Rank #'+d.rank+' of 65</div></div>'+
+      '<div class="kpi '+(d.gap>0.7?'kpi-left-red':d.gap>0.4?'kpi-left-orange':'kpi-left-green')+'">'+
+        '<div class="label">Funding Gap</div><div class="value">'+fmtPct(d.gap)+'</div><div class="sub">$'+fmtM(d.fund)+' of $'+fmtM(d.req)+'</div></div>'+
+      '<div class="kpi kpi-left-blue">'+
+        '<div class="label">People in Need</div><div class="value">'+fmtK(d.pin_k)+'</div><div class="sub">'+fmtPct(d.pin_norm)+' of population</div></div>'+
+      '<div class="kpi">'+
+        '<div class="label">Severity</div><div class="value">'+d.severity+'/5</div><div class="sub">Media neglect '+(d.media*100).toFixed(0)+'%</div></div>'+
+    '</div>'+
+
+    '<div class="decomp"><div class="sec-label">OCI Component Breakdown</div>'+
+      '<div class="dbar"><div class="dl">PIN / Pop</div><div class="dt"><div class="df" style="width:'+d.pin_norm*100+'%;background:#cd3a1f"></div></div><div class="dv">'+d.pin_norm.toFixed(2)+'</div></div>'+
+      '<div class="dbar"><div class="dl">Severity</div><div class="dt"><div class="df" style="width:'+d.sev*100+'%;background:#db7b18"></div></div><div class="dv">'+d.sev.toFixed(2)+'</div></div>'+
+      '<div class="dbar"><div class="dl">Funding gap</div><div class="dt"><div class="df" style="width:'+d.gap*100+'%;background:#1f69b3"></div></div><div class="dv">'+fmtPct(d.gap)+'</div></div>'+
+      '<div class="dbar"><div class="dl">Media neglect</div><div class="dt"><div class="df" style="width:'+d.media*100+'%;background:#999"></div></div><div class="dv">'+(d.media*100).toFixed(0)+'%</div></div>'+
+    '</div>'+
+
+    '<div class="chart-box"><div class="sec-label">Funding Over Time ($M)</div><canvas id="funding-chart"></canvas></div>'+
+    '<div class="chart-box"><div class="sec-label">OCI Score Trend</div><canvas id="oci-trend-chart"></canvas></div>'+
+
+    '<div class="fund-alloc"><div class="sec-label">Funding Allocation</div>'+
+      '<div class="fund-bar"><div class="funded" style="width:'+(1-d.gap)*100+'%"></div><div class="gap"></div></div>'+
+      '<div class="fund-labels"><span>Funded: <strong>$'+fmtM(d.fund)+'</strong></span><span>Shortfall: <strong>$'+fmtM(d.req-d.fund)+'</strong></span></div>'+
+    '</div>'+
+
+    '<div class="formula"><div class="fh">OCI Formula</div>'+
+      'OCI = (PIN/Pop &times; Sev &times; Gap) &times; (1 + Media &times; 0.2)<br>'+
+      '<span class="m">&nbsp;&nbsp;&nbsp;=</span> ('+d.pin_norm.toFixed(3)+' &times; '+d.sev.toFixed(1)+' &times; '+d.gap.toFixed(3)+') &times; (1 + '+d.media.toFixed(3)+' &times; 0.2)<br>'+
+      '<span class="m">&nbsp;&nbsp;&nbsp;=</span> <span class="r">'+d.oci.toFixed(4)+'</span> <span class="m">(normalized)</span></div>';
+
+  document.getElementById('detail-panel').classList.add('open');
+  renderFundingChart(iso);
+  renderOCITrendChart(iso);
+}
+
+function renderFundingChart(iso) {
+  const history = getCountryHistory(iso);
+  const ctx = document.getElementById('funding-chart');
+  if (!ctx) return;
+  if (fundingChart) fundingChart.destroy();
+  fundingChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: history.map(d => d.year),
+      datasets: [
+        { label: 'Funded', data: history.map(d => d.fund), backgroundColor: '#7fb92f', borderRadius: 2 },
+        { label: 'Shortfall', data: history.map(d => d.req - d.fund), backgroundColor: '#e8e8e8', borderRadius: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#646464', font: { size: 11, family: "'Roboto', sans-serif" }, usePointStyle: true, pointStyle: 'rectRounded', padding: 12 } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#999', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: { stacked: true, ticks: { color: '#999', font: { size: 11 }, callback: v => '$'+v+'M' }, grid: { color: '#f2f2f2' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+function renderOCITrendChart(iso) {
+  const history = getCountryHistory(iso);
+  const ctx = document.getElementById('oci-trend-chart');
+  if (!ctx) return;
+  if (decompChart) decompChart.destroy();
+  decompChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: history.map(d => d.year),
+      datasets: [{
+        label: 'OCI Score', data: history.map(d => d.oci),
+        borderColor: '#1f69b3', backgroundColor: 'rgba(31,105,179,0.06)',
+        fill: true, tension: 0.3,
+        pointBackgroundColor: '#1f69b3', pointBorderColor: '#fff', pointBorderWidth: 2,
+        pointRadius: 4, pointHoverRadius: 6, borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#999', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: { min: 0, max: 1.05, ticks: { color: '#999', font: { size: 11 } }, grid: { color: '#f2f2f2' }, border: { display: false } }
+      }
+    }
+  });
+}
+
+function updateStats() {
+  const data = getYearData(selectedYear);
+  const totalPIN = data.reduce((s,d) => s + d.pin_k, 0);
+  const avgGap = data.reduce((s,d) => s + d.gap, 0) / data.length;
+  const totalReq = data.reduce((s,d) => s + d.req, 0);
+  const totalFund = data.reduce((s,d) => s + d.fund, 0);
+  const highNeglect = data.filter(d => d.media > 0.7).length;
+
+  document.getElementById('stats-bar').innerHTML =
+    '<div class="st"><strong>'+data.length+'</strong> crises</div>'+
+    '<div class="st"><strong>'+fmtK(totalPIN)+'</strong> people in need</div>'+
+    '<div class="st"><strong>'+fmtPct(avgGap)+'</strong> avg gap</div>'+
+    '<div class="st"><strong>$'+fmtM(totalFund)+'</strong> funded</div>'+
+    '<div class="st"><strong>$'+fmtM(totalReq-totalFund)+'</strong> shortfall</div>'+
+    '<div class="st"><strong>'+highNeglect+'</strong> low visibility</div>';
+}
+
+document.querySelectorAll('.ctrl-row button[data-year]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ctrl-row button[data-year]').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    selectedYear = parseInt(btn.dataset.year);
+    selectedCountry = null;
+    document.getElementById('detail-panel').classList.remove('open');
+    map.setFilter('crisis-selected', ['==', 'iso_3166_1_alpha_3', '']);
+    updateMap(); renderSidebar(); updateStats();
+  });
+});
+
+document.querySelectorAll('.layer-row button[data-layer]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.layer-row button[data-layer]').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    selectedLayer = btn.dataset.layer;
+    updateMap(); renderSidebar();
+  });
+});
+
+document.getElementById('close-detail').addEventListener('click', () => {
+  document.getElementById('detail-panel').classList.remove('open');
+  selectedCountry = null;
+  map.setFilter('crisis-selected', ['==', 'iso_3166_1_alpha_3', '']);
+  document.querySelectorAll('.crisis-item').forEach(el => el.classList.remove('sel'));
+});
+</script>
+</body>
+</html>

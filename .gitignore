@@ -1,4 +1,5 @@
 data/raw/
+nft_images/
 __pycache__/
 *.pyc
 .env

@@ -1,0 +1,19 @@
+Flowchart of the CBPF project efficiency recommender system.
+
+Input: an underperforming CBPF project with known cluster, organization type, budget, and beneficiary count.
+
+Step 1 - Feature encoding:
+  - Categorical features (cluster, org type) -> OneHotEncoder
+  - Numeric features (budget, beneficiaries, beneficiary-to-budget ratio) -> MinMaxScaler
+  - Concatenated into a single feature vector
+
+Step 2 - Efficiency scoring:
+  - Compute log(beneficiaries / budget) within each cluster-year group
+  - Z-score normalize within group
+  - Projects with z-score > 1.5 are labeled "high-efficiency benchmarks" (265 identified)
+
+Step 3 - Similarity search:
+  - Compute cosine similarity between input project vector and all benchmark vectors
+  - Return top-K most similar high-efficiency projects
+
+Output: ranked list of comparable high-efficiency projects from other crisis contexts, with their cluster, country, budget, beneficiary count, and efficiency ratio shown.
