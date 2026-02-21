@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisLens — Overlooked Crisis Intelligence</title>
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+  :root {
+    --bg-primary: #0a0a0f;
+    --glass-bg: rgba(12, 14, 24, 0.75);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-highlight: rgba(255, 255, 255, 0.05);
+    --text-primary: #f0f0f5;
+    --text-secondary: #8a8a9a;
+    --accent-red: #ff4466;
+    --accent-orange: #ff8844;
+    --accent-yellow: #eab308;
+    --accent-green: #22c55e;
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 var(--glass-highlight);
+  }
+
+  /* ── Logo Badge ── */
+  .logo-badge {
+    position: fixed; top: 16px; left: 16px; z-index: 50;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 18px; border-radius: 16px;
+  }
+  .logo-badge .logo-icon {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-red), var(--accent-orange));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800;
+  }
+  .logo-badge .logo-text {
+    font-size: 15px; font-weight: 700; letter-spacing: -0.3px;
+  }
+  .logo-badge .logo-sub {
+    font-size: 10px; color: var(--text-secondary); font-weight: 500;
+    letter-spacing: 1.5px; text-transform: uppercase;
+  }
+
+  /* ── Coordinates Island ── */
+  .coords-island {
+    position: fixed; top: 72px; left: 16px; z-index: 40;
+    padding: 8px 14px; border-radius: 12px;
+    font-size: 11px; font-family: 'SF Mono', 'Fira Code', monospace;
+    color: var(--text-secondary); display: flex; gap: 14px;
+  }
+  .coords-island span { color: var(--text-primary); font-weight: 500; }
+
+  /* ── Left Sidebar ── */
+  .sidebar {
+    position: fixed; top: 110px; left: 16px; bottom: 16px; z-index: 30;
+    width: 340px; border-radius: 16px; display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .sidebar-header {
+    padding: 20px 20px 16px; border-bottom: 1px solid var(--glass-border);
+  }
+  .sidebar-header h2 {
+    font-size: 14px; font-weight: 700; letter-spacing: -0.2px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .sidebar-header .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 99px;
+    background: var(--accent-red); color: #fff; font-weight: 600;
+  }
+
+  /* ── Controls Row ── */
+  .controls-row {
+    padding: 12px 20px; border-bottom: 1px solid var(--glass-border);
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .ctrl-btn {
+    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.04); color: var(--text-secondary);
+    font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    font-family: inherit;
+  }
+  .ctrl-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+  .ctrl-btn.active { background: rgba(255,68,102,0.15); color: var(--accent-red); border-color: rgba(255,68,102,0.3); }
+
+  .layer-row {
+    padding: 8px 20px; border-bottom: 1px solid var(--glass-border);
+    display: flex; gap: 6px;
+  }
+  .layer-btn {
+    flex: 1; padding: 6px 8px; border-radius: 8px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.03); color: var(--text-secondary);
+    font-size: 10px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    text-align: center; font-family: inherit;
+  }
+  .layer-btn:hover { background: rgba(255,255,255,0.06); }
+  .layer-btn.active { background: rgba(59,130,246,0.15); color: var(--accent-blue); border-color: rgba(59,130,246,0.3); }
+
+  /* ── Crisis List ── */
+  .crisis-list {
+    flex: 1; overflow-y: auto; padding: 8px 12px;
+  }
+  .crisis-list::-webkit-scrollbar { width: 4px; }
+  .crisis-list::-webkit-scrollbar-track { background: transparent; }
+  .crisis-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+  .crisis-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  .crisis-item {
+    padding: 12px 14px; border-radius: 12px; margin-bottom: 4px;
+    cursor: pointer; transition: all 0.2s; border: 1px solid transparent;
+  }
+  .crisis-item:hover { background: rgba(255,255,255,0.04); border-color: var(--glass-border); }
+  .crisis-item.selected { background: rgba(255,68,102,0.08); border-color: rgba(255,68,102,0.2); }
+
+  .crisis-item .ci-top {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;
+  }
+  .crisis-item .ci-name {
+    font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px;
+  }
+  .crisis-item .ci-rank {
+    font-size: 10px; color: var(--accent-red); font-weight: 700;
+    background: rgba(255,68,102,0.12); padding: 1px 6px; border-radius: 6px;
+  }
+  .crisis-item .ci-oci {
+    font-size: 20px; font-weight: 800; letter-spacing: -1px;
+  }
+  .crisis-item .ci-bar {
+    height: 3px; border-radius: 3px; background: rgba(255,255,255,0.06);
+    margin-top: 6px; overflow: hidden;
+  }
+  .crisis-item .ci-bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s; }
+  .crisis-item .ci-meta {
+    display: flex; gap: 10px; margin-top: 6px; font-size: 10px; color: var(--text-secondary);
+  }
+
+  /* ── Right Detail Panel ── */
+  .detail-panel {
+    position: fixed; top: 16px; right: 16px; bottom: 16px; z-index: 30;
+    width: 380px; border-radius: 16px; display: flex; flex-direction: column;
+    overflow: hidden; transform: translateX(420px); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .detail-panel.open { transform: translateX(0); }
+
+  .detail-header {
+    padding: 20px; border-bottom: 1px solid var(--glass-border);
+    display: flex; justify-content: space-between; align-items: flex-start;
+  }
+  .detail-header h3 { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  .detail-header .close-btn {
+    width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.04); color: var(--text-secondary);
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.2s; font-family: inherit;
+  }
+  .detail-header .close-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
+
+  .detail-body {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+  }
+  .detail-body::-webkit-scrollbar { width: 4px; }
+  .detail-body::-webkit-scrollbar-track { background: transparent; }
+  .detail-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+  /* ── KPI Cards ── */
+  .kpi-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;
+  }
+  .kpi-card {
+    padding: 12px; border-radius: 12px; border: 1px solid var(--glass-border);
+    background: rgba(255,255,255,0.02);
+  }
+  .kpi-card .kpi-label {
+    font-size: 10px; color: var(--text-secondary); font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;
+  }
+  .kpi-card .kpi-value {
+    font-size: 22px; font-weight: 800; letter-spacing: -1px;
+  }
+  .kpi-card .kpi-sub {
+    font-size: 10px; color: var(--text-secondary); margin-top: 2px;
+  }
+
+  /* ── OCI Decomposition ── */
+  .decomp-section { margin-bottom: 20px; }
+  .decomp-section h4 {
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+  }
+  .decomp-bar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  }
+  .decomp-bar .db-label {
+    font-size: 11px; font-weight: 500; width: 100px; flex-shrink: 0;
+  }
+  .decomp-bar .db-track {
+    flex: 1; height: 8px; border-radius: 8px; background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+  .decomp-bar .db-fill {
+    height: 100%; border-radius: 8px; transition: width 0.6s ease;
+  }
+  .decomp-bar .db-val {
+    font-size: 11px; font-weight: 700; width: 42px; text-align: right; flex-shrink: 0;
+  }
+
+  /* ── Chart container ── */
+  .chart-container {
+    margin-bottom: 20px; padding: 14px; border-radius: 12px;
+    border: 1px solid var(--glass-border); background: rgba(255,255,255,0.02);
+  }
+  .chart-container h4 {
+    font-size: 11px; font-weight: 600; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+  }
+  .chart-container canvas { max-height: 200px; }
+
+  /* ── Bottom Stats Bar ── */
+  .stats-bar {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 40;
+    padding: 10px 24px; border-radius: 14px; display: flex; gap: 28px;
+    font-size: 12px;
+  }
+  .stats-bar .stat { display: flex; flex-direction: column; align-items: center; }
+  .stats-bar .stat-val { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; }
+  .stats-bar .stat-label { font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+
+  /* ── Legend ── */
+  .legend {
+    position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); z-index: 40;
+    padding: 8px 16px; border-radius: 10px; display: flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--text-secondary);
+  }
+  .legend .lg-block {
+    width: 24px; height: 10px; border-radius: 2px;
+  }
+  .legend .lg-label { margin: 0 6px 0 2px; }
+
+  /* ── Mapbox Overrides ── */
+  .mapboxgl-popup-content {
+    background: rgba(12, 14, 24, 0.9) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255,255,255,0.12) !important;
+    border-radius: 12px !important;
+    color: #f0f0f5 !important;
+    padding: 14px 16px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5) !important;
+    min-width: 220px;
+  }
+  .mapboxgl-popup-tip { border-top-color: rgba(12, 14, 24, 0.9) !important; }
+  .mapboxgl-popup-close-button {
+    color: rgba(255,255,255,0.5) !important; font-size: 18px !important;
+    right: 8px !important; top: 6px !important;
+  }
+  .mapboxgl-popup-close-button:hover { color: #fff !important; background: none !important; }
+  .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { opacity: 0.3; }
+
+  /* ── Pulse animation for top crisis ── */
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .pulse { animation: pulse-dot 2s ease-in-out infinite; }
+
+  /* ── Loading ── */
+  .loading-overlay {
+    position: fixed; inset: 0; z-index: 100; background: var(--bg-primary);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.6s; pointer-events: none;
+  }
+  .loading-overlay.hidden { opacity: 0; }
+  .loading-spinner {
+    width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent-red); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin-bottom: 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Loading CrisisLens Dashboard...</div>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Logo -->
+<div class="logo-badge glass">
+  <div class="logo-icon">CL</div>
+  <div>
+    <div class="logo-text">CrisisLens</div>
+    <div class="logo-sub">Overlooked Crisis Index</div>
+  </div>
+</div>
+
+<!-- Coordinates -->
+<div class="coords-island glass" id="coords">
+  Lat <span id="lat">20.00</span> &nbsp; Lng <span id="lng">0.00</span> &nbsp; Zoom <span id="zm">2.5</span>
+</div>
+
+<!-- Left Sidebar -->
+<div class="sidebar glass" id="sidebar">
+  <div class="sidebar-header">
+    <h2>Crisis Monitor <span class="badge" id="crisis-count">24</span></h2>
+  </div>
+  <div class="controls-row">
+    <button class="ctrl-btn active" data-year="2026">2026</button>
+    <button class="ctrl-btn" data-year="2025">2025</button>
+    <button class="ctrl-btn" data-year="2024">2024</button>
+  </div>
+  <div class="layer-row">
+    <button class="layer-btn active" data-layer="oci">OCI Score</button>
+    <button class="layer-btn" data-layer="gap">Funding Gap</button>
+    <button class="layer-btn" data-layer="pin">People in Need</button>
+    <button class="layer-btn" data-layer="media">Media Neglect</button>
+  </div>
+  <div class="crisis-list" id="crisis-list"></div>
+</div>
+
+<!-- Right Detail Panel -->
+<div class="detail-panel glass" id="detail-panel">
+  <div class="detail-header">
+    <div>
+      <h3 id="detail-country">—</h3>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:2px" id="detail-plan">—</div>
+    </div>
+    <button class="close-btn" id="close-detail">&times;</button>
+  </div>
+  <div class="detail-body" id="detail-body"></div>
+</div>
+
+<!-- Legend -->
+<div class="legend glass" id="legend">
+  <span style="margin-right:4px">Low</span>
+  <div class="lg-block" style="background:#22c55e"></div>
+  <div class="lg-block" style="background:#84cc16"></div>
+  <div class="lg-block" style="background:#eab308"></div>
+  <div class="lg-block" style="background:#f97316"></div>
+  <div class="lg-block" style="background:#ef4444"></div>
+  <div class="lg-block" style="background:#dc2626"></div>
+  <span style="margin-left:4px">High</span>
+  <span class="lg-label" id="legend-label">— OCI Score</span>
+</div>
+
+<!-- Bottom Stats -->
+<div class="stats-bar glass" id="stats-bar"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA — Embedded from Databricks pipeline outputs
+// ═══════════════════════════════════════════════════════════════
+const OCI_DATA = [
+  {iso:"SDN",year:2026,name:"Sudan",plan:"Sudan HRP 2026",pin_k:33699.77,pop:47514529,req:2866.23,fund:373.13,pin_norm:0.7093,sev:1.0,gap:0.8698,media:0.4658,oci:0.8513,rank:4,severity:5},
+  {iso:"SDN",year:2025,name:"Sudan",plan:"Sudan HRP 2025",pin_k:30440.77,pop:47514529,req:4162.52,fund:1630.36,pin_norm:0.6407,sev:1.0,gap:0.6083,media:0.4658,oci:0.5364,rank:9,severity:5},
+  {iso:"SDN",year:2024,name:"Sudan",plan:"Sudan HRP 2024",pin_k:24786.37,pop:47514529,req:2695.68,fund:1906.85,pin_norm:0.5217,sev:0.8,gap:0.2926,media:0.4658,oci:0.1655,rank:31,severity:4},
+  {iso:"COD",year:2024,name:"DR Congo",plan:"DRC HRP 2024",pin_k:25397.90,pop:103199358,req:2580.63,fund:1322.48,pin_norm:0.2461,sev:0.4,gap:0.4875,media:0.0,oci:0.0571,rank:50,severity:2},
+  {iso:"COD",year:2025,name:"DR Congo",plan:"DRC HRP 2025",pin_k:21241.77,pop:103199358,req:2538.02,fund:669.86,pin_norm:0.2058,sev:0.4,gap:0.7361,media:0.0,oci:0.0731,rank:45,severity:2},
+  {iso:"COD",year:2026,name:"DR Congo",plan:"DRC HRP 2026",pin_k:14940.73,pop:103199358,req:1403.72,fund:144.54,pin_norm:0.1448,sev:0.4,gap:0.8970,media:0.0,oci:0.0621,rank:48,severity:2},
+  {iso:"AFG",year:2024,name:"Afghanistan",plan:"Afghanistan HRP 2024",pin_k:23666.39,pop:40411869,req:3059.59,fund:1583.51,pin_norm:0.5856,sev:1.0,gap:0.4824,media:0.7493,oci:0.4081,rank:12,severity:5},
+  {iso:"AFG",year:2025,name:"Afghanistan",plan:"Afghanistan HRP 2025",pin_k:22887.73,pop:40411869,req:2416.81,fund:1006.70,pin_norm:0.5664,sev:1.0,gap:0.5835,media:0.7493,oci:0.4780,rank:10,severity:5},
+  {iso:"YEM",year:2026,name:"Yemen",plan:"Yemen HRP 2026",pin_k:23100.0,pop:34449825,req:2470.0,fund:171.83,pin_norm:0.6705,sev:1.0,gap:0.9304,media:0.8069,oci:0.9150,rank:3,severity:5},
+  {iso:"YEM",year:2025,name:"Yemen",plan:"Yemen HRP 2025",pin_k:19540.22,pop:34449825,req:2478.77,fund:705.93,pin_norm:0.5672,sev:1.0,gap:0.7152,media:0.8069,oci:0.5936,rank:8,severity:5},
+  {iso:"YEM",year:2024,name:"Yemen",plan:"Yemen HRP 2024",pin_k:18182.66,pop:34449825,req:2705.76,fund:1527.53,pin_norm:0.5278,sev:0.8,gap:0.4355,media:0.8069,oci:0.2670,rank:22,severity:4},
+  {iso:"ETH",year:2024,name:"Ethiopia",plan:"Ethiopia HRP 2024",pin_k:21360.48,pop:102536651,req:3235.78,fund:1004.08,pin_norm:0.2083,sev:0.4,gap:0.6897,media:0.4190,oci:0.0752,rank:44,severity:2},
+  {iso:"SYR",year:2024,name:"Syria",plan:"Syria HRP 2024",pin_k:16661.47,pop:23227014,req:4074.16,fund:1483.22,pin_norm:0.7173,sev:1.0,gap:0.6359,media:0.7617,oci:0.6628,rank:6,severity:5},
+  {iso:"SYR",year:2026,name:"Syria",plan:"Syria HRP 2026",pin_k:16500.0,pop:23227014,req:3190.0,fund:161.80,pin_norm:0.7104,sev:1.0,gap:0.9493,media:0.7617,oci:0.9816,rank:2,severity:5},
+  {iso:"MMR",year:2024,name:"Myanmar",plan:"Myanmar HRP 2024",pin_k:18590.02,pop:54179306,req:993.55,fund:402.44,pin_norm:0.3431,sev:0.6,gap:0.5949,media:0.0045,oci:0.1517,rank:33,severity:3},
+  {iso:"MMR",year:2026,name:"Myanmar",plan:"Myanmar HRP 2026",pin_k:16229.05,pop:54179306,req:889.60,fund:62.18,pin_norm:0.2995,sev:0.6,gap:0.9301,media:0.0045,oci:0.2084,rank:26,severity:3},
+  {iso:"MMR",year:2025,name:"Myanmar",plan:"Myanmar HRP 2025",pin_k:1957.17,pop:54179306,req:1137.81,fund:200.05,pin_norm:0.0361,sev:0.2,gap:0.8242,media:0.0045,oci:0.0038,rank:61,severity:1},
+  {iso:"UKR",year:2024,name:"Ukraine",plan:"Ukraine HRP 2024",pin_k:14622.30,pop:37000000,req:3107.70,fund:2395.70,pin_norm:0.3952,sev:0.8,gap:0.2291,media:0.1011,oci:0.0899,rank:41,severity:4},
+  {iso:"UKR",year:2025,name:"Ukraine",plan:"Ukraine HRP 2025",pin_k:12708.87,pop:37000000,req:2633.53,fund:1532.25,pin_norm:0.3435,sev:0.6,gap:0.4182,media:0.1011,oci:0.1077,rank:38,severity:3},
+  {iso:"UKR",year:2026,name:"Ukraine",plan:"Ukraine HRP 2026",pin_k:10849.70,pop:37000000,req:2303.96,fund:310.09,pin_norm:0.2932,sev:0.6,gap:0.8654,media:0.1011,oci:0.1932,rank:28,severity:3},
+  {iso:"SSD",year:2026,name:"South Sudan",plan:"South Sudan HRP 2026",pin_k:9913.86,pop:12394970,req:1463.05,fund:153.43,pin_norm:0.7998,sev:1.0,gap:0.8951,media:0.5285,oci:1.0,rank:1,severity:5},
+  {iso:"SSD",year:2025,name:"South Sudan",plan:"South Sudan HRP 2025",pin_k:9290.09,pop:12394970,req:1694.78,fund:713.32,pin_norm:0.7495,sev:1.0,gap:0.5791,media:0.5285,oci:0.6048,rank:7,severity:5},
+  {iso:"SSD",year:2024,name:"South Sudan",plan:"South Sudan HRP 2024",pin_k:8996.99,pop:12394970,req:1788.82,fund:1283.92,pin_norm:0.7259,sev:1.0,gap:0.2823,media:0.5285,oci:0.2835,rank:20,severity:5},
+  {iso:"COL",year:2025,name:"Colombia",plan:"RMRP 2025",pin_k:9053.35,pop:53216592,req:467.23,fund:45.94,pin_norm:0.1701,sev:0.4,gap:0.9017,media:0.8639,oci:0.0875,rank:42,severity:2},
+  {iso:"COL",year:2024,name:"Colombia",plan:"RMRP 2024",pin_k:8307.13,pop:53216592,req:575.87,fund:169.88,pin_norm:0.1561,sev:0.4,gap:0.7050,media:0.8639,oci:0.0617,rank:49,severity:2},
+  {iso:"COL",year:2026,name:"Colombia",plan:"Colombia HRP 2026",pin_k:6900.0,pop:53216592,req:286.97,fund:15.58,pin_norm:0.1297,sev:0.4,gap:0.9457,media:0.8639,oci:0.0691,rank:46,severity:2},
+  {iso:"NGA",year:2024,name:"Nigeria",plan:"Nigeria HRP 2024",pin_k:7945.36,pop:216798930,req:926.54,fund:555.80,pin_norm:0.0366,sev:0.2,gap:0.4001,media:0.0977,oci:0.0,rank:65,severity:1},
+  {iso:"NGA",year:2025,name:"Nigeria",plan:"Nigeria HRP 2025",pin_k:7847.05,pop:216798930,req:910.25,fund:284.69,pin_norm:0.0362,sev:0.2,gap:0.6872,media:0.0977,oci:0.0026,rank:64,severity:1},
+  {iso:"NGA",year:2026,name:"Nigeria",plan:"Nigeria HRP 2026",pin_k:5900.0,pop:216798930,req:516.40,fund:39.79,pin_norm:0.0272,sev:0.2,gap:0.9230,media:0.0977,oci:0.0027,rank:63,severity:1},
+  {iso:"VEN",year:2025,name:"Venezuela",plan:"Venezuela HRP 2025",pin_k:7943.72,pop:27225775,req:606.50,fund:118.23,pin_norm:0.2918,sev:0.6,gap:0.8051,media:0.8058,oci:0.2037,rank:27,severity:3},
+  {iso:"VEN",year:2026,name:"Venezuela",plan:"Venezuela HRP 2026",pin_k:7900.0,pop:27225775,req:606.0,fund:22.55,pin_norm:0.2902,sev:0.6,gap:0.9628,media:0.8058,oci:0.2430,rank:24,severity:3},
+  {iso:"VEN",year:2024,name:"Venezuela",plan:"Venezuela HRP 2024",pin_k:7581.48,pop:27225775,req:617.03,fund:177.42,pin_norm:0.2785,sev:0.6,gap:0.7125,media:0.8058,oci:0.1715,rank:29,severity:3},
+  {iso:"MLI",year:2024,name:"Mali",plan:"Mali HRP 2024",pin_k:7107.19,pop:17907114,req:701.57,fund:309.56,pin_norm:0.3969,sev:0.8,gap:0.5588,media:0.9153,oci:0.2624,rank:23,severity:4},
+  {iso:"MLI",year:2025,name:"Mali",plan:"Mali HRP 2025",pin_k:6431.53,pop:17907114,req:771.31,fund:189.70,pin_norm:0.3592,sev:0.8,gap:0.7541,media:0.9153,oci:0.3212,rank:18,severity:4},
+  {iso:"MLI",year:2026,name:"Mali",plan:"Mali HRP 2026",pin_k:5100.0,pop:17907114,req:577.87,fund:46.53,pin_norm:0.2848,sev:0.6,gap:0.9195,media:0.9153,oci:0.2319,rank:25,severity:3},
+  {iso:"TCD",year:2025,name:"Chad",plan:"Chad HRP 2025",pin_k:7049.23,pop:18033749,req:1454.26,fund:436.51,pin_norm:0.3909,sev:0.8,gap:0.6998,media:0.9577,oci:0.3269,rank:17,severity:4},
+  {iso:"TCD",year:2024,name:"Chad",plan:"Chad HRP 2024",pin_k:6009.72,pop:18033749,req:1124.57,fund:639.89,pin_norm:0.3332,sev:0.6,gap:0.4310,media:0.9577,oci:0.1264,rank:37,severity:3},
+  {iso:"TCD",year:2026,name:"Chad",plan:"Chad HRP 2026",pin_k:4509.01,pop:18033749,req:986.07,fund:65.29,pin_norm:0.2500,sev:0.4,gap:0.9338,media:0.9577,oci:0.1373,rank:35,severity:2},
+  {iso:"SOM",year:2024,name:"Somalia",plan:"Somalia HRP 2024",pin_k:6869.72,pop:12327528,req:1585.26,fund:896.56,pin_norm:0.5573,sev:1.0,gap:0.4344,media:0.8752,oci:0.3569,rank:16,severity:5},
+  {iso:"SOM",year:2025,name:"Somalia",plan:"Somalia HRP 2025",pin_k:5979.74,pop:12327528,req:1421.99,fund:411.98,pin_norm:0.4851,sev:0.8,gap:0.7103,media:0.8752,oci:0.4069,rank:13,severity:4},
+  {iso:"SOM",year:2026,name:"Somalia",plan:"Somalia HRP 2026",pin_k:4796.04,pop:12327528,req:852.0,fund:113.20,pin_norm:0.3891,sev:0.8,gap:0.8671,media:0.8752,oci:0.3983,rank:14,severity:4},
+  {iso:"HTI",year:2026,name:"Haiti",plan:"Haiti HRP 2026",pin_k:6414.19,pop:11899555,req:880.33,fund:32.18,pin_norm:0.5390,sev:1.0,gap:0.9634,media:0.2349,oci:0.6857,rank:5,severity:5},
+  {iso:"HTI",year:2025,name:"Haiti",plan:"Haiti HRP 2025",pin_k:5986.46,pop:11899555,req:908.16,fund:236.38,pin_norm:0.5031,sev:0.8,gap:0.7397,media:0.2349,oci:0.3914,rank:15,severity:4},
+  {iso:"HTI",year:2024,name:"Haiti",plan:"Haiti HRP 2024",pin_k:5500.0,pop:11899555,req:673.77,fund:297.13,pin_norm:0.4622,sev:0.8,gap:0.5590,media:0.2349,oci:0.2706,rank:21,severity:4},
+  {iso:"BFA",year:2024,name:"Burkina Faso",plan:"Burkina Faso HRP 2024",pin_k:6293.94,pop:23558491,req:934.60,fund:429.96,pin_norm:0.2672,sev:0.6,gap:0.5400,media:0.9447,oci:0.1267,rank:36,severity:3},
+  {iso:"BFA",year:2025,name:"Burkina Faso",plan:"Burkina Faso HRP 2025",pin_k:5915.14,pop:23558491,req:792.57,fund:272.68,pin_norm:0.2511,sev:0.6,gap:0.6559,media:0.9447,oci:0.1452,rank:34,severity:3},
+  {iso:"BFA",year:2026,name:"Burkina Faso",plan:"Burkina Faso HRP 2026",pin_k:4400.0,pop:23558491,req:658.49,fund:57.96,pin_norm:0.1868,sev:0.4,gap:0.9120,media:0.9447,oci:0.0989,rank:40,severity:2},
+  {iso:"CAF",year:2024,name:"Central African Republic",plan:"CAR HRP 2024",pin_k:2801.81,pop:5742315,req:367.67,fund:259.46,pin_norm:0.4879,sev:0.8,gap:0.2943,media:1.0,oci:0.1710,rank:30,severity:4},
+  {iso:"CAF",year:2025,name:"Central African Republic",plan:"CAR HRP 2025",pin_k:2440.34,pop:5742315,req:326.06,fund:125.58,pin_norm:0.4250,sev:0.8,gap:0.6149,media:1.0,oci:0.3143,rank:19,severity:4},
+  {iso:"CAF",year:2026,name:"Central African Republic",plan:"CAR HRP 2026",pin_k:2287.0,pop:5742315,req:264.10,fund:29.37,pin_norm:0.3983,sev:0.8,gap:0.8888,media:1.0,oci:0.4271,rank:11,severity:4},
+  {iso:"HND",year:2024,name:"Honduras",plan:"Honduras HRP 2024",pin_k:2800.0,pop:9892674,req:203.16,fund:65.37,pin_norm:0.2830,sev:0.6,gap:0.6783,media:0.5483,oci:0.1583,rank:32,severity:3},
+  {iso:"HND",year:2025,name:"Honduras",plan:"Honduras HRP 2025",pin_k:1640.22,pop:9892674,req:138.49,fund:15.58,pin_norm:0.1658,sev:0.4,gap:0.8875,media:0.5483,oci:0.0790,rank:43,severity:2},
+  {iso:"NER",year:2024,name:"Niger",plan:"Niger HRP 2024",pin_k:4500.0,pop:26367847,req:662.19,fund:363.39,pin_norm:0.1707,sev:0.4,gap:0.4512,media:0.8442,oci:0.0419,rank:52,severity:2},
+  {iso:"NER",year:2025,name:"Niger",plan:"Niger HRP 2025",pin_k:2580.33,pop:26367847,req:603.03,fund:156.82,pin_norm:0.0979,sev:0.2,gap:0.7400,media:0.8442,oci:0.0177,rank:57,severity:1},
+  {iso:"NER",year:2026,name:"Niger",plan:"Niger HRP 2026",pin_k:2600.0,pop:26367847,req:449.0,fund:50.58,pin_norm:0.0986,sev:0.2,gap:0.8873,media:0.8442,oci:0.0221,rank:55,severity:1},
+  {iso:"CMR",year:2024,name:"Cameroon",plan:"Cameroon HRP 2024",pin_k:3369.53,pop:29442318,req:371.37,fund:170.11,pin_norm:0.1144,sev:0.2,gap:0.5420,media:0.9853,oci:0.0150,rank:59,severity:1},
+  {iso:"CMR",year:2025,name:"Cameroon",plan:"Cameroon HRP 2025",pin_k:3322.06,pop:29442318,req:359.30,fund:84.32,pin_norm:0.1128,sev:0.2,gap:0.7653,media:0.9853,oci:0.0224,rank:54,severity:1},
+  {iso:"CMR",year:2026,name:"Cameroon",plan:"Cameroon HRP 2026",pin_k:2900.0,pop:29442318,req:308.0,fund:20.27,pin_norm:0.0985,sev:0.2,gap:0.9342,media:0.9853,oci:0.0241,rank:53,severity:1},
+  {iso:"MOZ",year:2024,name:"Mozambique",plan:"Mozambique HRP 2024",pin_k:2252.97,pop:35163992,req:413.42,fund:175.61,pin_norm:0.0641,sev:0.2,gap:0.5752,media:0.9972,oci:0.0074,rank:60,severity:1},
+  {iso:"MOZ",year:2025,name:"Mozambique",plan:"Mozambique HRP 2025",pin_k:1305.03,pop:35163992,req:352.10,fund:122.91,pin_norm:0.0371,sev:0.2,gap:0.6509,media:0.9972,oci:0.0036,rank:62,severity:1},
+  {iso:"MOZ",year:2026,name:"Mozambique",plan:"Mozambique HRP 2026",pin_k:2356.16,pop:35163992,req:534.34,fund:26.19,pin_norm:0.0670,sev:0.2,gap:0.9510,media:0.9972,oci:0.0156,rank:58,severity:1},
+  {iso:"GTM",year:2024,name:"Guatemala",plan:"Guatemala HRP 2024",pin_k:5300.0,pop:17843132,req:125.40,fund:66.73,pin_norm:0.2970,sev:0.6,gap:0.4679,media:0.2671,oci:0.1076,rank:39,severity:3},
+  {iso:"GTM",year:2025,name:"Guatemala",plan:"Guatemala HRP 2025",pin_k:2163.95,pop:17843132,req:100.56,fund:24.99,pin_norm:0.1213,sev:0.2,gap:0.7515,media:0.2671,oci:0.0206,rank:56,severity:1},
+  {iso:"SLV",year:2024,name:"El Salvador",plan:"El Salvador HRP 2024",pin_k:1119.20,pop:6350969,req:86.59,fund:26.11,pin_norm:0.1762,sev:0.4,gap:0.6985,media:0.5302,oci:0.0653,rank:47,severity:2},
+  {iso:"SLV",year:2025,name:"El Salvador",plan:"El Salvador HRP 2025",pin_k:818.70,pop:6350969,req:66.92,fund:18.64,pin_norm:0.1289,sev:0.4,gap:0.7214,media:0.5302,oci:0.0484,rank:51,severity:2},
+];
+
+// ISO3 → [lng, lat] centers for map markers
+const COUNTRY_CENTERS = {
+  SDN:[30.0,-15.0], // adjusted below
+  COD:[23.66,-2.88], AFG:[66.0,33.0], YEM:[48.0,15.55], ETH:[39.5,8.0],
+  SYR:[38.5,35.0], MMR:[96.0,21.0], UKR:[32.0,49.0], SSD:[31.6,7.0],
+  COL:[-74.0,4.6], NGA:[8.0,9.0], VEN:[-66.9,10.5], MLI:[-2.0,17.0],
+  TCD:[18.7,15.4], SOM:[46.0,5.15], HTI:[-72.3,19.0], BFA:[-1.5,12.3],
+  CAF:[20.9,6.6], HND:[-86.6,14.1], NER:[8.1,17.6], CMR:[12.4,5.95],
+  MOZ:[35.5,-18.7], GTM:[-90.2,15.5], SLV:[-88.9,13.7]
+};
+COUNTRY_CENTERS.SDN = [30.0, 15.5];
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
+let selectedYear = 2026;
+let selectedLayer = 'oci';
+let selectedCountry = null;
+let fundingChart = null;
+let decompChart = null;
+
+function getYearData(year) {
+  return OCI_DATA.filter(d => d.year === year).sort((a,b) => a.rank - b.rank);
+}
+
+function getCountryHistory(iso) {
+  return OCI_DATA.filter(d => d.iso === iso).sort((a,b) => a.year - b.year);
+}
+
+function getLayerValue(d) {
+  if (selectedLayer === 'oci') return d.oci;
+  if (selectedLayer === 'gap') return d.gap;
+  if (selectedLayer === 'pin') return Math.min(d.pin_norm * 1.5, 1.0);
+  if (selectedLayer === 'media') return d.media;
+  return d.oci;
+}
+
+function getLayerLabel() {
+  const labels = { oci:'OCI Score', gap:'Funding Gap', pin:'People in Need', media:'Media Neglect' };
+  return labels[selectedLayer] || 'OCI Score';
+}
+
+function valToColor(v) {
+  // 0→green, 0.5→yellow, 1→red
+  if (v <= 0.2) return '#22c55e';
+  if (v <= 0.4) return '#84cc16';
+  if (v <= 0.55) return '#eab308';
+  if (v <= 0.7) return '#f97316';
+  if (v <= 0.85) return '#ef4444';
+  return '#dc2626';
+}
+
+function fmtM(v) { return v >= 1000 ? (v/1000).toFixed(1)+'B' : v.toFixed(0)+'M'; }
+function fmtK(v) { return v >= 1000 ? (v/1000).toFixed(1)+'M' : v.toFixed(0)+'K'; }
+function fmtPct(v) { return (v*100).toFixed(1)+'%'; }
+
+// ═══════════════════════════════════════════════════════════════
+// MAP SETUP
+// ═══════════════════════════════════════════════════════════════
+mapboxgl.accessToken = 'pk.eyJ1IjoicmFhbWlhIiwiYSI6ImNta3J1NWgxaDE1cWszZHEwZmlwbW1ucHUifQ.zbeIUNvE9rfsCU-0b9Db4A';
+
+const map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/mapbox/dark-v11',
+  center: [20, 10],
+  zoom: 2.3,
+  pitch: 0,
+  bearing: 0,
+  antialias: true,
+  projection: 'mercator'
+});
+
+map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
+
+// Coords display
+map.on('move', () => {
+  const c = map.getCenter();
+  document.getElementById('lat').textContent = c.lat.toFixed(2);
+  document.getElementById('lng').textContent = c.lng.toFixed(2);
+  document.getElementById('zm').textContent = map.getZoom().toFixed(1);
+});
+
+map.on('load', () => {
+  document.getElementById('loading').classList.add('hidden');
+
+  // ── Country boundaries (choropleth) ──
+  map.addSource('countries', {
+    type: 'vector',
+    url: 'mapbox://mapbox.country-boundaries-v1'
+  });
+
+  // Choropleth fill layer — initially hidden, we set filter + paint per country
+  map.addLayer({
+    id: 'crisis-choropleth',
+    type: 'fill',
+    source: 'countries',
+    'source-layer': 'country_boundaries',
+    paint: {
+      'fill-color': '#ff4466',
+      'fill-opacity': 0.6
+    },
+    filter: ['in', 'iso_3166_1_alpha_3', '']
+  }, 'admin-1-boundary');
+
+  map.addLayer({
+    id: 'crisis-outline',
+    type: 'line',
+    source: 'countries',
+    'source-layer': 'country_boundaries',
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': 1,
+      'line-opacity': 0.3
+    },
+    filter: ['in', 'iso_3166_1_alpha_3', '']
+  }, 'admin-1-boundary');
+
+  // Selected country highlight
+  map.addLayer({
+    id: 'crisis-selected',
+    type: 'line',
+    source: 'countries',
+    'source-layer': 'country_boundaries',
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': 2.5,
+      'line-opacity': 0.9
+    },
+    filter: ['==', 'iso_3166_1_alpha_3', '']
+  });
+
+  // ── Crisis markers (circles on map) ──
+  map.addSource('crisis-points', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features: [] }
+  });
+
+  map.addLayer({
+    id: 'crisis-circles',
+    type: 'circle',
+    source: 'crisis-points',
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'oci'], 0, 6, 0.5, 14, 1.0, 22],
+      'circle-color': ['get', 'color'],
+      'circle-opacity': 0.7,
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': 1.5,
+      'circle-stroke-opacity': 0.5
+    }
+  });
+
+  map.addLayer({
+    id: 'crisis-labels',
+    type: 'symbol',
+    source: 'crisis-points',
+    layout: {
+      'text-field': ['get', 'iso'],
+      'text-size': 10,
+      'text-font': ['DIN Pro Medium', 'Arial Unicode MS Regular'],
+      'text-offset': [0, -2.2],
+      'text-allow-overlap': false
+    },
+    paint: {
+      'text-color': '#ffffff',
+      'text-halo-color': 'rgba(0,0,0,0.6)',
+      'text-halo-width': 1
+    }
+  });
+
+  // ── Interactions ──
+  map.on('click', 'crisis-circles', (e) => {
+    if (e.features.length > 0) {
+      const iso = e.features[0].properties.iso;
+      selectCountry(iso);
+    }
+  });
+
+  map.on('click', 'crisis-choropleth', (e) => {
+    if (e.features.length > 0) {
+      const iso = e.features[0].properties.iso_3166_1_alpha_3;
+      if (OCI_DATA.some(d => d.iso === iso && d.year === selectedYear)) {
+        selectCountry(iso);
+      }
+    }
+  });
+
+  map.on('mouseenter', 'crisis-circles', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'crisis-circles', () => { map.getCanvas().style.cursor = ''; });
+  map.on('mouseenter', 'crisis-choropleth', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'crisis-choropleth', () => { map.getCanvas().style.cursor = ''; });
+
+  // Hover popup
+  const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 15 });
+
+  map.on('mousemove', 'crisis-circles', (e) => {
+    if (e.features.length > 0) {
+      const p = e.features[0].properties;
+      popup.setLngLat(e.lngLat).setHTML(`
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">${p.name}</div>
+        <div style="font-size:11px;color:#8a8a9a;display:flex;flex-direction:column;gap:3px">
+          <div>OCI Score: <span style="color:#ff4466;font-weight:600">${Number(p.oci).toFixed(3)}</span> (#${p.rank})</div>
+          <div>Funding Gap: <span style="color:#f97316;font-weight:600">${(Number(p.gap)*100).toFixed(1)}%</span></div>
+          <div>People in Need: <span style="color:#eab308;font-weight:600">${fmtK(Number(p.pin_k))}</span></div>
+          <div>Media Neglect: <span style="color:#8b5cf6;font-weight:600">${(Number(p.media)*100).toFixed(0)}%</span></div>
+        </div>
+      `).addTo(map);
+    }
+  });
+  map.on('mouseleave', 'crisis-circles', () => popup.remove());
+
+  // Initial render
+  updateMap();
+  renderSidebar();
+  updateStats();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MAP UPDATE
+// ═══════════════════════════════════════════════════════════════
+function updateMap() {
+  const data = getYearData(selectedYear);
+  const isos = data.map(d => d.iso);
+
+  // Build color expression for choropleth
+  const colorExpr = ['match', ['get', 'iso_3166_1_alpha_3']];
+  data.forEach(d => {
+    colorExpr.push(d.iso, valToColor(getLayerValue(d)));
+  });
+  colorExpr.push('rgba(0,0,0,0)');
+
+  // Build opacity expression
+  const opacityExpr = ['match', ['get', 'iso_3166_1_alpha_3']];
+  data.forEach(d => {
+    const v = getLayerValue(d);
+    opacityExpr.push(d.iso, 0.15 + v * 0.45);
+  });
+  opacityExpr.push(0);
+
+  map.setFilter('crisis-choropleth', ['in', 'iso_3166_1_alpha_3', ...isos]);
+  map.setPaintProperty('crisis-choropleth', 'fill-color', colorExpr);
+  map.setPaintProperty('crisis-choropleth', 'fill-opacity', opacityExpr);
+  map.setFilter('crisis-outline', ['in', 'iso_3166_1_alpha_3', ...isos]);
+
+  // Update markers
+  const features = data.map(d => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: COUNTRY_CENTERS[d.iso] || [0,0] },
+    properties: { iso: d.iso, name: d.name, oci: d.oci, rank: d.rank, gap: d.gap, pin_k: d.pin_k, media: d.media, color: valToColor(getLayerValue(d)) }
+  }));
+  map.getSource('crisis-points').setData({ type: 'FeatureCollection', features });
+
+  // Update legend label
+  document.getElementById('legend-label').textContent = '— ' + getLayerLabel();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIDEBAR
+// ═══════════════════════════════════════════════════════════════
+function renderSidebar() {
+  const data = getYearData(selectedYear);
+  const list = document.getElementById('crisis-list');
+  document.getElementById('crisis-count').textContent = data.length;
+
+  list.innerHTML = data.map(d => {
+    const v = getLayerValue(d);
+    const color = valToColor(v);
+    const isSelected = selectedCountry === d.iso;
+    return `
+      <div class="crisis-item ${isSelected ? 'selected' : ''}" data-iso="${d.iso}">
+        <div class="ci-top">
+          <div class="ci-name">
+            <span class="ci-rank">#${d.rank}</span>
+            ${d.name}
+          </div>
+          <div class="ci-oci" style="color:${color}">${d.oci.toFixed(3)}</div>
+        </div>
+        <div class="ci-bar"><div class="ci-bar-fill" style="width:${v*100}%;background:${color}"></div></div>
+        <div class="ci-meta">
+          <span>Gap ${fmtPct(d.gap)}</span>
+          <span>PIN ${fmtK(d.pin_k)}</span>
+          <span>Sev ${d.severity}/5</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Click handlers
+  list.querySelectorAll('.crisis-item').forEach(el => {
+    el.addEventListener('click', () => selectCountry(el.dataset.iso));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COUNTRY SELECTION + DETAIL PANEL
+// ═══════════════════════════════════════════════════════════════
+function selectCountry(iso) {
+  selectedCountry = iso;
+
+  // Highlight on map
+  map.setFilter('crisis-selected', ['==', 'iso_3166_1_alpha_3', iso]);
+
+  // Fly to
+  const center = COUNTRY_CENTERS[iso];
+  if (center) map.flyTo({ center, zoom: 4.5, duration: 1200 });
+
+  // Update sidebar selection
+  document.querySelectorAll('.crisis-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.iso === iso);
+  });
+
+  // Populate detail panel
+  const d = OCI_DATA.find(r => r.iso === iso && r.year === selectedYear);
+  if (!d) return;
+
+  const panel = document.getElementById('detail-panel');
+  document.getElementById('detail-country').textContent = d.name;
+  document.getElementById('detail-plan').textContent = d.plan + ' — Rank #' + d.rank;
+
+  const body = document.getElementById('detail-body');
+  body.innerHTML = `
+    <!-- KPI Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">OCI Score</div>
+        <div class="kpi-value" style="color:${valToColor(d.oci)}">${d.oci.toFixed(3)}</div>
+        <div class="kpi-sub">Rank #${d.rank} of 65</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Funding Gap</div>
+        <div class="kpi-value" style="color:${valToColor(d.gap)}">${fmtPct(d.gap)}</div>
+        <div class="kpi-sub">$${fmtM(d.fund)} of $${fmtM(d.req)}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">People in Need</div>
+        <div class="kpi-value" style="color:var(--accent-yellow)">${fmtK(d.pin_k)}</div>
+        <div class="kpi-sub">${fmtPct(d.pin_norm)} of population</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Media Neglect</div>
+        <div class="kpi-value" style="color:var(--accent-purple)">${(d.media*100).toFixed(0)}%</div>
+        <div class="kpi-sub">OCHA Severity ${d.severity}/5</div>
+      </div>
+    </div>
+
+    <!-- OCI Decomposition -->
+    <div class="decomp-section">
+      <h4>OCI Component Decomposition</h4>
+      <div class="decomp-bar">
+        <div class="db-label">Severity</div>
+        <div class="db-track"><div class="db-fill" style="width:${d.pin_norm*100}%;background:var(--accent-red)"></div></div>
+        <div class="db-val">${d.pin_norm.toFixed(2)}</div>
+      </div>
+      <div class="decomp-bar">
+        <div class="db-label">Sev. Weight</div>
+        <div class="db-track"><div class="db-fill" style="width:${d.sev*100}%;background:var(--accent-orange)"></div></div>
+        <div class="db-val">${d.sev.toFixed(2)}</div>
+      </div>
+      <div class="decomp-bar">
+        <div class="db-label">Funding Gap</div>
+        <div class="db-track"><div class="db-fill" style="width:${d.gap*100}%;background:var(--accent-yellow)"></div></div>
+        <div class="db-val">${fmtPct(d.gap)}</div>
+      </div>
+      <div class="decomp-bar">
+        <div class="db-label">Media Neglect</div>
+        <div class="db-track"><div class="db-fill" style="width:${d.media*100}%;background:var(--accent-purple)"></div></div>
+        <div class="db-val">${(d.media*100).toFixed(0)}%</div>
+      </div>
+    </div>
+
+    <!-- Funding History Chart -->
+    <div class="chart-container">
+      <h4>Funding Over Time ($M)</h4>
+      <canvas id="funding-chart"></canvas>
+    </div>
+
+    <!-- OCI Trend Chart -->
+    <div class="chart-container">
+      <h4>OCI Score Trend</h4>
+      <canvas id="oci-trend-chart"></canvas>
+    </div>
+
+    <!-- Funding Breakdown Bar -->
+    <div class="decomp-section">
+      <h4>Funding Breakdown</h4>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="flex:1;height:20px;border-radius:8px;overflow:hidden;display:flex">
+          <div style="width:${(1-d.gap)*100}%;background:var(--accent-green);transition:width 0.6s"></div>
+          <div style="flex:1;background:rgba(255,68,102,0.3)"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-secondary)">
+        <span style="color:var(--accent-green)">Funded: $${fmtM(d.fund)}</span>
+        <span style="color:var(--accent-red)">Gap: $${fmtM(d.req - d.fund)}</span>
+      </div>
+    </div>
+
+    <!-- Formula -->
+    <div style="margin-top:16px;padding:12px;border-radius:10px;border:1px solid var(--glass-border);background:rgba(255,255,255,0.02)">
+      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.8px;font-weight:600">OCI Formula</div>
+      <div style="font-size:11px;font-family:'SF Mono','Fira Code',monospace;color:var(--text-primary);line-height:1.6">
+        OCI = (PIN_norm &times; Sev &times; Gap) &times; (1 + Media &times; 0.2)<br>
+        <span style="color:var(--text-secondary)">=</span> (${d.pin_norm.toFixed(3)} &times; ${d.sev.toFixed(1)} &times; ${d.gap.toFixed(3)}) &times; (1 + ${d.media.toFixed(3)} &times; 0.2)<br>
+        <span style="color:var(--text-secondary)">=</span> <span style="color:${valToColor(d.oci)};font-weight:700">${d.oci.toFixed(4)}</span> <span style="color:var(--text-secondary)">(normalized)</span>
+      </div>
+    </div>
+  `;
+
+  panel.classList.add('open');
+
+  // Render charts
+  renderFundingChart(iso);
+  renderOCITrendChart(iso);
+}
+
+function renderFundingChart(iso) {
+  const history = getCountryHistory(iso);
+  const ctx = document.getElementById('funding-chart');
+  if (!ctx) return;
+  if (fundingChart) fundingChart.destroy();
+
+  fundingChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: history.map(d => d.year),
+      datasets: [
+        { label: 'Funded', data: history.map(d => d.fund), backgroundColor: 'rgba(34,197,94,0.7)', borderRadius: 4 },
+        { label: 'Gap', data: history.map(d => d.req - d.fund), backgroundColor: 'rgba(255,68,102,0.4)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: '#8a8a9a', font: { size: 10 } } } },
+      scales: {
+        x: { stacked: true, ticks: { color: '#8a8a9a', font: { size: 10 } }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: '#8a8a9a', font: { size: 10 }, callback: v => '$'+v+'M' }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function renderOCITrendChart(iso) {
+  const history = getCountryHistory(iso);
+  const ctx = document.getElementById('oci-trend-chart');
+  if (!ctx) return;
+  if (decompChart) decompChart.destroy();
+
+  decompChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: history.map(d => d.year),
+      datasets: [{
+        label: 'OCI Score',
+        data: history.map(d => d.oci),
+        borderColor: '#ff4466',
+        backgroundColor: 'rgba(255,68,102,0.1)',
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#ff4466',
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8a8a9a', font: { size: 10 } }, grid: { display: false } },
+        y: { min: 0, max: 1.05, ticks: { color: '#8a8a9a', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOTTOM STATS
+// ═══════════════════════════════════════════════════════════════
+function updateStats() {
+  const data = getYearData(selectedYear);
+  const totalPIN = data.reduce((s,d) => s + d.pin_k, 0);
+  const avgGap = data.reduce((s,d) => s + d.gap, 0) / data.length;
+  const totalReq = data.reduce((s,d) => s + d.req, 0);
+  const totalFund = data.reduce((s,d) => s + d.fund, 0);
+  const highNeglect = data.filter(d => d.media > 0.7).length;
+
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat"><div class="stat-val">${data.length}</div><div class="stat-label">Crises Tracked</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--accent-yellow)">${fmtK(totalPIN)}</div><div class="stat-label">People in Need</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--accent-red)">${fmtPct(avgGap)}</div><div class="stat-label">Avg Funding Gap</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--accent-green)">$${fmtM(totalFund)}</div><div class="stat-label">Total Funded</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--accent-orange)">$${fmtM(totalReq - totalFund)}</div><div class="stat-label">Total Shortfall</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--accent-purple)">${highNeglect}</div><div class="stat-label">Low Visibility</div></div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+// Year buttons
+document.querySelectorAll('.ctrl-btn[data-year]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ctrl-btn[data-year]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedYear = parseInt(btn.dataset.year);
+    selectedCountry = null;
+    document.getElementById('detail-panel').classList.remove('open');
+    map.setFilter('crisis-selected', ['==', 'iso_3166_1_alpha_3', '']);
+    updateMap();
+    renderSidebar();
+    updateStats();
+  });
+});
+
+// Layer buttons
+document.querySelectorAll('.layer-btn[data-layer]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.layer-btn[data-layer]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedLayer = btn.dataset.layer;
+    updateMap();
+    renderSidebar();
+  });
+});
+
+// Close detail panel
+document.getElementById('close-detail').addEventListener('click', () => {
+  document.getElementById('detail-panel').classList.remove('open');
+  selectedCountry = null;
+  map.setFilter('crisis-selected', ['==', 'iso_3166_1_alpha_3', '']);
+  document.querySelectorAll('.crisis-item').forEach(el => el.classList.remove('selected'));
+});
+</script>
+</body>
+</html>

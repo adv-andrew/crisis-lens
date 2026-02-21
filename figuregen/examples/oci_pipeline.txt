@@ -1,0 +1,18 @@
+Left-to-right flowchart showing the full OCI (Overlooked Crisis Index) data pipeline.
+
+Data sources on the left:
+- OCHA HNO (People in Need data)
+- OCHA FTS (Funding requirements and actuals)
+- COD-PS / UN WPP (Country population)
+- Google Trends (Media attention proxy)
+
+Processing in the middle:
+- data_loader.py fetches and caches raw data to data/raw/
+- oci_calculator.py computes the OCI formula: OCI = (PIN/Population × Severity × Funding Gap) × (1 + Media Neglect × 0.2)
+- Normalized scores output to oci_scores.csv
+
+Downstream analysis (branching right):
+- outlier_detector.py runs z-score analysis on CBPF project efficiency
+- similarity_engine.py does cosine similarity for project recommendations
+- Streamlit app renders 5 interactive pages
+- Databricks notebook writes to Delta Lake for SQL access

@@ -1,0 +1,17 @@
+Diagram showing humanitarian funding flow and the gap analysis.
+
+Show a top-to-bottom flow:
+
+1. Donor countries pool funds into two channels:
+   - Country-Based Pooled Funds (CBPF) — flexible, local allocation
+   - Bilateral aid — direct government-to-government transfers
+
+2. OCHA FTS tracks both channels and publishes requirements vs. actuals.
+
+3. CrisisLens computes the Funding Gap = (Required - Received) / Required for each country-year.
+
+4. The Funding Gap feeds into the OCI score alongside Severity and Media Neglect.
+
+5. Output: ranked list of most underfunded crises, funding forecast with confidence intervals, reallocation simulator.
+
+Include a side note box showing the mean 2026 funding gap = 91.7% across all tracked crises.
