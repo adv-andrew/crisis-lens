@@ -1,0 +1,74 @@
+## Inspiration
+
+In 2026, over **300 million people** need humanitarian assistance worldwide. But when we looked at the data, we found something disturbing: funding doesn't follow need - it follows headlines. Ukraine and Palestine receive extensive media coverage and proportionally more funding, while equally severe emergencies in South Sudan, Chad, and the Central African Republic remain chronically invisible and underfunded.
+
+There is no single tool that lets OCHA or donor agencies answer the question: *which crises is the world missing?* Existing dashboards track funding or needs separately, but none combine severity, funding coverage, population impact, and media visibility into one actionable score. We built CrisisLens to fill that gap.
+
+## What it does
+
+CrisisLens computes an **Overlooked Crisis Index (OCI)** - a normalized 0–1 score that identifies humanitarian crises the world is missing. The OCI combines four data signals:
+
+$ OCI = \left(\frac{P}{N}\right) \cdot \left(\frac{S}{5}\right) \cdot G \cdot \left(1 + 0.2M\right) $
+
+where \\( P/N \\) is people in need as a fraction of population, \\( S \\) is a derived severity score (1–5), \\( G \\) is the funding gap, and \\( M \\) is a media neglect score from Google Trends. Higher OCI = more overlooked.
+
+The system provides six tools for decision-makers:
+
+- **Interactive Geo Map** - Choropleth world map with four switchable layers (OCI, Funding Gap, People in Need, Media Neglect). Click any country to drill down.
+- **Crisis Drilldown** - Per-country OCI decomposition and cluster-level funding gaps (WASH, Health, Food Security, etc.)
+- **Efficiency Outlier Detection** - Z-score analysis on beneficiary-to-budget ratios across 8,000+ CBPF projects, flagging high-efficiency benchmarks
+- **Project Recommender** - Cosine similarity search over project feature vectors to surface comparable high-efficiency benchmarks from other contexts
+- **Funding Forecast** - Linear regression with 90% prediction intervals on funding gap trajectories, identifying crises where the gap is statistically widening
+- **Reallocation Simulator** - Interactive policy tool that redistributes funding from well-funded crises to the most overlooked, proportional to OCI score
+
+### Key Findings
+
+- **South Sudan (OCI 1.000), Syria (0.982), and Yemen (0.915)** are the three most overlooked crises
+- The mean funding gap across all tracked crises in 2026 is **91.7%**
+- **12 crises** have statistically widening funding gaps, signaling worsening neglect
+- **265 benchmark CBPF projects** achieve a median beneficiary-to-budget ratio **15.6x** the rest
+
+## How we built it
+
+**Data pipeline:** We integrated five UN-aligned data sources - HNO (people in need), FTS (funding requirements and actuals), COD-PS (population), CBPF (project-level budgets and beneficiaries), and Google Trends (media attention). All data is downloaded and cleaned through a single `data_loader.py` module with caching. We added population fallbacks from UN World Population Prospects for 9 crisis countries missing from COD-PS (Yemen, Syria, Myanmar, Ukraine, and others).
+
+**OCI computation:** Severity is derived by quantile-binning the PIN/population ratio into a 1–5 scale (the HNO files don't include numeric OCHA severity). Media scores are fetched live from Google Trends via `pytrends`, with a static baseline fallback. The final OCI is min-max normalized across all country-year observations.
+
+**Statistical analysis:** Funding forecasts use `scipy.stats.linregress` with proper 90% prediction intervals (not just extrapolated lines). Project efficiency outliers are detected via log-transformed z-scores within each cluster-year group. The recommender uses scikit-learn's cosine similarity over a sparse feature matrix combining one-hot encoded categoricals with scaled numerics.
+
+**Frontend:** Streamlit multi-page app with Plotly for all visualizations. The reallocation simulator uses interactive sliders to model funding redistribution in real time.
+
+**Databricks integration:** The full pipeline is reproduced in a Databricks notebook that writes all outputs to Delta Lake tables for SQL access. Spark/Delta features are detected at runtime and degrade gracefully when running locally.
+
+**Research paper:** We wrote a companion academic paper documenting the full methodology, results, and limitations for reproducibility.
+
+## Challenges we ran into
+
+**Missing population data.** Yemen, Syria, Myanmar, Ukraine, and several other major crisis countries are absent from the COD-PS population dataset. Without population, \\( P/N \\) is undefined and OCI drops to zero - making the most overlooked crises literally invisible in our index. We solved this with a fallback table from UN World Population Prospects, but it took us a while to diagnose why our top crises were all scoring zero.
+
+**No numeric severity in HNO data.** The OCHA 1–5 severity scale is not included in the public HNO CSV files. We had to derive it by placing \\( P/N \\) ratios into quintiles. This is a known limitation - the proxy captures scale of need but not conflict intensity or access constraints.
+
+**Google Trends rate limits.** `pytrends` is aggressive with rate limiting. We batch queries in groups of 5 and fall back to a static baseline derived from January 2025 snapshots when the API is unavailable.
+
+**Spark on local machines.** Users with PySpark installed locally would trigger our Databricks detection, causing Delta Lake writes to crash. We switched to checking the `DATABRICKS_RUNTIME_VERSION` environment variable and wrapped Delta cells in try/except blocks.
+
+## Accomplishments we're proud of
+
+- The **triple-neglect pattern** - discovering that the most overlooked crises are simultaneously severe, underfunded, *and* invisible in media - was a genuine finding from the data, not something we set out to prove
+- The **Reallocation Simulator** turns analysis into a policy tool: a decision-maker can adjust a single slider and see what happens if 10% of well-funded crisis budgets move to the most overlooked
+- **265 benchmark projects** at 15.6x the median efficiency ratio gives OCHA a concrete shortlist for cross-context learning
+- The system works end-to-end: live data download to OCI computation to interactive dashboard to Databricks notebook to research paper, all from the same pipeline
+
+## What we learned
+
+- **Population normalization matters more than we expected.** Without it, large countries like Nigeria (220M people) always dominate raw PIN counts but have low proportional impact. Small countries like South Sudan (12M) with 9.9M people in need are the real emergencies by proportion.
+- **Media attention is a surprisingly strong predictor of funding.** The double-neglect scatter plot - plotting media neglect against funding gap - shows clear clustering in the upper-right quadrant. Crises that are invisible are also underfunded. This is not just correlation; it reflects how donor attention works.
+- **Linear forecasts on 3 data points are fragile.** We show prediction intervals precisely because we want to be honest about uncertainty. These are early warning signals, not predictions.
+
+## What's next
+
+- **GDELT integration** for more granular media tracking (article counts, sentiment) instead of Google Trends
+- **Official OCHA severity** via the HPC API to replace our quantile-binned proxy
+- **MLflow experiment tracking** on Databricks for systematic OCI formula tuning
+- **Actian VectorAI DB** for production-grade vector search in the recommender (currently using scikit-learn cosine similarity as fallback)
+- **Needs-based allocation floor** - working with OCHA to pilot a policy where every crisis above a severity threshold receives minimum funding coverage regardless of media attention
