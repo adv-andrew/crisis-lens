@@ -132,7 +132,7 @@ def find_similar_projects(
     """
     try:
         from utils.actian_connector import search_similar_projects
-        results = search_similar_projects(project_code, top_n=top_n)
+        results = search_similar_projects(project_code, df_projects=df_projects, top_n=top_n)
         if results is not None and not results.empty:
             return results
     except Exception:

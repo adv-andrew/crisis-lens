@@ -133,58 +133,54 @@ if not proj_row.empty:
 st.markdown("---")
 st.subheader("Similar Benchmark Projects")
 
-if st.button("Find Similar Projects", type="primary") or "last_recommendations" in st.session_state:
-    with st.spinner("Computing similarity..."):
-        from utils.similarity_engine import find_similar_projects
+with st.spinner("Computing similarity..."):
+    from utils.similarity_engine import find_similar_projects
 
-        results = find_similar_projects(
-            selected_project, df_projects, df_outliers, top_n=top_n
-        )
+    results = find_similar_projects(
+        selected_project, df_projects, df_outliers, top_n=top_n
+    )
 
-        # Detect backend
-        backend = "sklearn cosine similarity"
-        try:
-            from utils.actian_connector import _check_actian_available
-            if _check_actian_available():
-                backend = "Actian VectorAI"
-        except Exception:
-            pass
+    # detect backend
+    backend = "sklearn cosine similarity"
+    try:
+        from utils.actian_connector import _check_actian_available
+        if _check_actian_available():
+            backend = "Actian VectorAI"
+    except Exception:
+        pass
 
-    st.caption(f"Powered by: **{backend}**")
+st.caption(f"Powered by: **{backend}**")
 
-    if results.empty:
-        st.info(
-            "No similar benchmark projects found. This may happen if there are "
-            "too few high-efficiency projects in the dataset."
-        )
-    else:
-        # Display results
-        st.dataframe(
-            results,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "budget_usd": st.column_config.NumberColumn("Budget (USD)", format="$%,.0f"),
-                "beneficiaries_total": st.column_config.NumberColumn("Beneficiaries", format="%,.0f"),
-                "efficiency_ratio": st.column_config.NumberColumn("Efficiency", format="%.6f"),
-                "similarity_score": st.column_config.ProgressColumn(
-                    "Similarity", min_value=0, max_value=1, format="%.3f"
-                ),
-            },
-        )
-
-        # Summary insight
-        if len(results) > 0:
-            avg_budget = results["budget_usd"].mean()
-            avg_ben = results["beneficiaries_total"].mean()
-            st.success(
-                f"**Benchmarks average:** ${avg_budget:,.0f} budget, "
-                f"{avg_ben:,.0f} beneficiaries — "
-                f"compare to selected project's ${p.get('budget_usd', 0):,.0f} budget "
-                f"and {p.get('beneficiaries_total', 0):,.0f} beneficiaries."
-            )
+if results.empty:
+    st.info(
+        "No similar benchmark projects found. This may happen if there are "
+        "too few high-efficiency projects in the dataset."
+    )
 else:
-    st.info("Click **Find Similar Projects** to search for comparable benchmarks.")
+    st.dataframe(
+        results,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "budget_usd": st.column_config.NumberColumn("Budget (USD)", format="$%,.0f"),
+            "beneficiaries_total": st.column_config.NumberColumn("Beneficiaries", format="%,.0f"),
+            "efficiency_ratio": st.column_config.NumberColumn("Efficiency", format="%.6f"),
+            "similarity_score": st.column_config.ProgressColumn(
+                "Similarity", min_value=0, max_value=1, format="%.3f"
+            ),
+        },
+    )
+
+    # summary insight
+    if len(results) > 0:
+        avg_budget = results["budget_usd"].mean()
+        avg_ben = results["beneficiaries_total"].mean()
+        st.success(
+            f"**Benchmarks average:** ${avg_budget:,.0f} budget, "
+            f"{avg_ben:,.0f} beneficiaries -- "
+            f"compare to selected project's ${p.get('budget_usd', 0):,.0f} budget "
+            f"and {p.get('beneficiaries_total', 0):,.0f} beneficiaries."
+        )
 
 # --- Methodology ---
 with st.expander("How does the recommender work?"):
