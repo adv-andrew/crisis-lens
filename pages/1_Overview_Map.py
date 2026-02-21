@@ -49,11 +49,10 @@ selected_years = st.sidebar.multiselect(
     "Year", available_years, default=[available_years[0]] if available_years else []
 )
 
-map_mode = st.sidebar.radio(
-    "Map Layer",
-    ["OCI Score", "Funding Gap %", "People in Need (M)"],
-    index=0,
-)
+map_layers = ["OCI Score", "Funding Gap %", "People in Need (M)"]
+if "media_score" in df_oci.columns:
+    map_layers.append("Media Neglect")
+map_mode = st.sidebar.radio("Map Layer", map_layers, index=0)
 
 # --- Filter and deduplicate ---
 if selected_years:
@@ -85,12 +84,17 @@ elif map_mode == "Funding Gap %":
     color_scale = "OrRd"
     color_label = "Funding Gap"
     range_color = (0, 1)
-else:
+elif map_mode == "People in Need (M)":
     df_filtered["people_in_need_m"] = df_filtered["people_in_need_k"] / 1000
     color_col = "people_in_need_m"
     color_scale = "Blues"
     color_label = "People in Need (M)"
     range_color = None
+else:  # Media Neglect
+    color_col = "media_score"
+    color_scale = [[0, "#2ecc71"], [0.5, "#f39c12"], [1, "#8e0000"]]
+    color_label = "Media Neglect Score"
+    range_color = (0, 1)
 
 fig = px.choropleth(
     df_filtered,
@@ -105,6 +109,7 @@ fig = px.choropleth(
         "oci_score": ":.3f",
         "funding_gap": ":.1%",
         "people_in_need_k": ":,.0f",
+        "media_score": ":.2f" if "media_score" in df_filtered.columns else False,
         "display_name": False,
     },
     labels={
@@ -112,6 +117,7 @@ fig = px.choropleth(
         "oci_score": "OCI Score",
         "funding_gap": "Funding Gap",
         "people_in_need_k": "People in Need (k)",
+        "media_score": "Media Neglect",
         "country_iso3": "ISO3",
     },
 )

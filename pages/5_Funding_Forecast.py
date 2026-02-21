@@ -2,7 +2,7 @@
 CrisisLens — Funding Forecast
 ===============================
 Identifies crises trending toward deeper underfunding using
-linear regression on historical funding coverage.
+linear regression with confidence intervals on historical funding coverage.
 """
 
 from pathlib import Path
@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
+from scipy import stats
 
 
 # --- Data loading ---
@@ -24,7 +25,7 @@ def _load_oci():
 
 @st.cache_data(ttl=3600, show_spinner="Computing forecasts...")
 def _compute_forecasts(df_oci_hash):
-    """Compute linear regression forecasts for all countries with multi-year data."""
+    """Compute linear regression forecasts with confidence intervals."""
     df_oci = _load_oci()
     if df_oci.empty:
         return pd.DataFrame()
@@ -38,17 +39,23 @@ def _compute_forecasts(df_oci_hash):
         x = g["year"].values.astype(float)
         y = g["funding_gap"].values.astype(float)
 
-        # Linear regression: funding_gap = slope * year + intercept
-        slope, intercept = np.polyfit(x, y, deg=1)
+        # scipy linregress gives us slope, intercept, r_value, p_value, stderr
+        result = stats.linregress(x, y)
+        slope = result.slope
+        intercept = result.intercept
+        r_squared = result.rvalue ** 2
+        stderr = result.stderr
+        intercept_stderr = result.intercept_stderr if hasattr(result, "intercept_stderr") else 0
 
         # Project to 2027
         proj_2027 = float(np.clip(slope * 2027 + intercept, 0, 1))
 
-        # R-squared
-        y_pred = slope * x + intercept
-        ss_res = np.sum((y - y_pred) ** 2)
-        ss_tot = np.sum((y - np.mean(y)) ** 2)
-        r_squared = 1 - ss_res / ss_tot if ss_tot > 0 else 0
+        # 90% prediction interval width at 2027
+        n = len(x)
+        x_mean = x.mean()
+        se_pred = stderr * np.sqrt(1 + 1/n + (2027 - x_mean)**2 / np.sum((x - x_mean)**2)) if n > 2 else stderr * 2
+        t_crit = stats.t.ppf(0.95, df=max(n - 2, 1))  # 90% two-sided
+        margin = t_crit * se_pred
 
         results.append({
             "country_iso3": iso3,
@@ -56,8 +63,12 @@ def _compute_forecasts(df_oci_hash):
             "slope": round(slope, 6),
             "intercept": round(intercept, 4),
             "r_squared": round(r_squared, 4),
+            "p_value": round(result.pvalue, 4),
+            "stderr": round(stderr, 6),
             "current_gap": round(float(y[-1]), 4),
             "proj_gap_2027": round(proj_2027, 4),
+            "proj_upper": round(float(np.clip(proj_2027 + margin, 0, 1)), 4),
+            "proj_lower": round(float(np.clip(proj_2027 - margin, 0, 1)), 4),
             "latest_oci": float(g["oci_score"].iloc[-1]) if "oci_score" in g.columns else 0,
             "n_years": len(g),
             "years_range": f"{int(x[0])}-{int(x[-1])}",
@@ -77,8 +88,8 @@ df_forecast = _compute_forecasts(len(df_oci))
 # --- Header ---
 st.header("Funding Forecast")
 st.caption(
-    "Linear regression on historical funding gap data to identify crises "
-    "trending toward deeper underfunding."
+    "Linear regression with confidence intervals on historical funding gap data "
+    "to identify crises trending toward deeper underfunding."
 )
 
 if df_forecast.empty:
@@ -95,9 +106,9 @@ min_years = st.sidebar.slider("Minimum years of data", 2, 5, 2)
 df_forecast_filtered = df_forecast[df_forecast["n_years"] >= min_years]
 
 show_all = st.sidebar.checkbox("Show all crises (not just at-risk)", value=False)
+confidence_level = st.sidebar.radio("Confidence Band", ["90%", "None"], index=0)
 
 # --- At-risk crises ---
-# Positive slope = funding gap growing = crisis getting worse
 median_oci = df_oci["oci_score"].median() if "oci_score" in df_oci.columns else 0.5
 
 df_at_risk = df_forecast_filtered[
@@ -106,7 +117,7 @@ df_at_risk = df_forecast_filtered[
 ].sort_values("slope", ascending=False)
 
 # --- Summary metrics ---
-c1, c2, c3 = st.columns(3)
+c1, c2, c3, c4 = st.columns(4)
 with c1:
     st.metric("Crises at Risk", len(df_at_risk))
 with c2:
@@ -121,6 +132,20 @@ with c3:
         )
     else:
         st.metric("Most At-Risk", "None detected")
+with c4:
+    sig_count = (df_forecast_filtered["p_value"] < 0.1).sum()
+    st.metric("Statistically Significant", f"{sig_count}/{len(df_forecast_filtered)}")
+
+# --- Key Finding ---
+if not df_at_risk.empty:
+    n_worsening = len(df_at_risk)
+    worst_name = df_at_risk.iloc[0]["country_name"]
+    worst_proj = df_at_risk.iloc[0]["proj_gap_2027"]
+    st.error(
+        f"**Key Finding:** {n_worsening} crises are trending toward deeper neglect. "
+        f"**{worst_name}** is projected to reach a **{worst_proj * 100:.0f}% funding gap** "
+        f"by 2027 if current trends continue."
+    )
 
 st.markdown("---")
 
@@ -134,17 +159,21 @@ st.caption(
 display_df = df_at_risk if not show_all else df_forecast_filtered.sort_values("slope", ascending=False)
 
 if not display_df.empty:
+    table_cols = ["country_name", "country_iso3", "current_gap", "proj_gap_2027",
+                  "proj_lower", "proj_upper", "slope", "r_squared", "p_value",
+                  "latest_oci", "n_years", "years_range"]
+    available_cols = [c for c in table_cols if c in display_df.columns]
     st.dataframe(
-        display_df[
-            ["country_name", "country_iso3", "current_gap", "proj_gap_2027",
-             "slope", "r_squared", "latest_oci", "n_years", "years_range"]
-        ].rename(columns={
+        display_df[available_cols].rename(columns={
             "country_name": "Country",
             "country_iso3": "ISO3",
             "current_gap": "Current Gap",
-            "proj_gap_2027": "2027 Projected Gap",
+            "proj_gap_2027": "2027 Projected",
+            "proj_lower": "90% Lower",
+            "proj_upper": "90% Upper",
             "slope": "Gap Trend (slope)",
             "r_squared": "R²",
+            "p_value": "p-value",
             "latest_oci": "Latest OCI",
             "n_years": "Data Points",
             "years_range": "Years",
@@ -155,7 +184,7 @@ if not display_df.empty:
             "Current Gap": st.column_config.ProgressColumn(
                 "Current Gap", min_value=0, max_value=1, format="%.0%%"
             ),
-            "2027 Projected Gap": st.column_config.ProgressColumn(
+            "2027 Projected": st.column_config.ProgressColumn(
                 "2027 Projected", min_value=0, max_value=1, format="%.0%%"
             ),
             "Latest OCI": st.column_config.ProgressColumn(
@@ -194,6 +223,39 @@ if not df_forecast_filtered.empty:
         forecast_gaps = [float(np.clip(fr["slope"] * y + fr["intercept"], 0, 1)) for y in forecast_years]
 
         fig = go.Figure()
+
+        # Confidence band (if enabled and enough data)
+        if confidence_level == "90%" and fr["n_years"] >= 2:
+            x_hist = df_hist["year"].values.astype(float)
+            n = len(x_hist)
+            x_mean = x_hist.mean()
+            ss_x = np.sum((x_hist - x_mean) ** 2)
+
+            all_years_arr = np.array(list(df_hist["year"].values) + forecast_years, dtype=float)
+
+            if n > 2 and ss_x > 0:
+                # Residual standard error
+                y_hist = df_hist["funding_gap"].values.astype(float)
+                y_pred_hist = fr["slope"] * x_hist + fr["intercept"]
+                s_e = np.sqrt(np.sum((y_hist - y_pred_hist) ** 2) / (n - 2))
+                t_crit = stats.t.ppf(0.95, df=n - 2)
+
+                se_pred = s_e * np.sqrt(
+                    1 + 1/n + (all_years_arr - x_mean)**2 / ss_x
+                )
+                trend_y = np.array([fr["slope"] * y + fr["intercept"] for y in all_years_arr])
+                upper = np.clip(trend_y + t_crit * se_pred, 0, 1)
+                lower = np.clip(trend_y - t_crit * se_pred, 0, 1)
+
+                fig.add_trace(go.Scatter(
+                    x=np.concatenate([all_years_arr, all_years_arr[::-1]]),
+                    y=np.concatenate([upper, lower[::-1]]),
+                    fill="toself",
+                    fillcolor="rgba(231,76,60,0.1)",
+                    line=dict(color="rgba(231,76,60,0)"),
+                    name="90% Prediction Interval",
+                    hoverinfo="skip",
+                ))
 
         # Historical line
         fig.add_trace(go.Scatter(
@@ -250,11 +312,13 @@ if not df_forecast_filtered.empty:
 
         # Interpretation
         direction = "increasing" if fr["slope"] > 0 else "decreasing"
+        sig_text = " (statistically significant)" if fr["p_value"] < 0.1 else " (not statistically significant)"
         st.markdown(
             f"**{country_name}:** Funding gap is **{direction}** at "
             f"**{abs(fr['slope']) * 100:.2f} percentage points per year** "
-            f"(R² = {fr['r_squared']:.3f}). "
-            f"Projected 2027 funding gap: **{fr['proj_gap_2027'] * 100:.0f}%**."
+            f"(R² = {fr['r_squared']:.3f}, p = {fr['p_value']:.3f}){sig_text}. "
+            f"Projected 2027 funding gap: **{fr['proj_gap_2027'] * 100:.0f}%** "
+            f"(90% CI: {fr['proj_lower'] * 100:.0f}%–{fr['proj_upper'] * 100:.0f}%)."
         )
     else:
         st.info("Insufficient data for this country.")
@@ -262,12 +326,15 @@ if not df_forecast_filtered.empty:
 # --- Methodology ---
 with st.expander("How does forecasting work?"):
     st.markdown("""
-    **Method:** Simple linear regression on historical funding gap vs. year.
+    **Method:** Linear regression (`scipy.stats.linregress`) on historical funding gap vs. year,
+    with prediction intervals.
 
     - `funding_gap = slope × year + intercept`
     - A **positive slope** means the gap is growing (coverage declining)
     - Projections are clipped to [0, 1] (valid range for a percentage)
-    - R² measures how well the linear trend fits the historical data
+    - **R²** measures goodness of fit; **p-value** tests statistical significance of the trend
+    - **90% prediction interval** shows the range within which the true 2027 value is
+      expected to fall, accounting for both parameter uncertainty and residual variance
 
     **"At risk" criteria:**
     - Positive slope (gap increasing) **AND**
@@ -278,4 +345,5 @@ with st.expander("How does forecasting work?"):
 
     **Limitation:** Linear extrapolation assumes the trend continues. Sudden
     changes (new conflict, peace agreement, donor pledges) are not captured.
+    With only 2-3 data points, confidence intervals are necessarily wide.
     """)
