@@ -1,0 +1,73 @@
+% matheus-style.tex
+% reusable style file for all papers by matheus maldaner
+% last updated: 2026-02-21
+%
+% usage: copy into paper directory, add \usepackage{matheus-style} to preamble
+% this file layers on top of venue-specific .sty/.cls files
+
+\ProvidesPackage{matheus-style}
+
+% --- core packages (safe to load alongside most venue templates) ---
+\RequirePackage{booktabs}          % professional tables (\toprule, \midrule, \bottomrule)
+\RequirePackage{graphicx}          % \includegraphics
+\RequirePackage{subcaption}        % subfigures with (a), (b), (c) labels
+\RequirePackage{amsmath,amssymb}   % standard math environments
+\RequirePackage{float}             % [H] placement option
+\RequirePackage[most]{tcolorbox}   % algorithm boxes, callout boxes
+\RequirePackage{enumitem}          % list customization (noitemsep, etc.)
+\RequirePackage{xcolor}            % named colors
+\RequirePackage{xspace}            % smart spacing after macros
+
+% --- algorithm box (matches thesis style) ---
+% clean horizontal-rule-only box for pseudocode
+\newtcolorbox{algorithmbox}[1][]{
+    enhanced,
+    colback=white,
+    colframe=black,
+    boxrule=0pt,
+    borderline north={0.8pt}{0pt}{black},
+    borderline south={0.8pt}{0pt}{black},
+    left=8pt,
+    right=8pt,
+    top=6pt,
+    bottom=6pt,
+    before skip=8pt,
+    after skip=8pt,
+    sharp corners,
+    #1
+}
+
+% --- colorblind-safe palette (tol bright) ---
+\definecolor{cblue}{HTML}{0072B2}
+\definecolor{corange}{HTML}{D55E00}
+\definecolor{cgreen}{HTML}{009E73}
+\definecolor{cpink}{HTML}{CC79A7}
+\definecolor{cyellow}{HTML}{F0E442}
+\definecolor{csky}{HTML}{56B4E9}
+\definecolor{cgray}{HTML}{999999}
+
+% --- math shortcuts ---
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator{\argmax}{arg,max}
+\DeclareMathOperator{\argmin}{arg,min}
+\DeclareMathOperator{\softmax}{softmax}
+\DeclareMathOperator{\sigmoid}{\sigma}
+
+% --- text shortcuts ---
+\newcommand{\ie}{i.e.,\xspace}
+\newcommand{\eg}{e.g.,\xspace}
+\newcommand{\cf}{cf.\xspace}
+\newcommand{\etal}{et al.\xspace}
+\newcommand{\wrt}{w.r.t.\xspace}
+
+% --- typography ---
+\clubpenalty=10000   % no orphans
+\widowpenalty=10000  % no widows
+
+% --- float spacing ---
+\setlength{\floatsep}{10pt}
+\setlength{\textfloatsep}{12pt}
+\setlength{\intextsep}{8pt}
