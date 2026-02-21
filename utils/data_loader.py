@@ -69,6 +69,26 @@ FTS_CLUSTER_COL_MAP = {
     "percentFunded": "percent_funded",
 }
 
+# ---------------------------------------------------------------------------
+# Population fallback — UN World Population Prospects 2024 estimates (thousands)
+# Used when COD-PS lacks a country. Source: population.un.org
+# ---------------------------------------------------------------------------
+POPULATION_FALLBACK = {
+    "YEM": 34_449_825,
+    "SYR": 23_227_014,
+    "MMR": 54_179_306,
+    "UKR": 37_000_000,
+    "CAF": 5_742_315,
+    "PSE": 5_483_661,
+    "LBY": 6_888_388,
+    "IRQ": 44_496_122,
+    "LBN": 5_353_930,
+    "JOR": 11_337_052,
+    "ERI": 3_748_901,
+    "PRK": 26_160_821,
+    "ZWE": 16_665_409,
+}
+
 CBPF_CLUSTER_KEYWORDS = {
     "Education": "Education",
     "Health": "Health",
@@ -316,9 +336,23 @@ def load_population() -> pd.DataFrame:
     df_total = df_total.sort_values("Reference_year", ascending=False)
     df_total = df_total.drop_duplicates(subset=["country_iso3"])
 
-    return df_total[["country_iso3", "Population"]].rename(
+    df_out = df_total[["country_iso3", "Population"]].rename(
         columns={"Population": "total_population"}
     ).reset_index(drop=True)
+
+    # Merge fallback population for countries missing from COD-PS
+    existing_iso3 = set(df_out["country_iso3"].dropna())
+    fallback_rows = [
+        {"country_iso3": iso3, "total_population": pop}
+        for iso3, pop in POPULATION_FALLBACK.items()
+        if iso3 not in existing_iso3
+    ]
+    if fallback_rows:
+        df_out = pd.concat(
+            [df_out, pd.DataFrame(fallback_rows)], ignore_index=True
+        )
+
+    return df_out
 
 
 def load_cbpf_projects() -> pd.DataFrame:
@@ -392,6 +426,96 @@ def load_cbpf_projects() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
+# Media attention — Google Trends proxy for "overlooked" signal
+# ---------------------------------------------------------------------------
+
+# Baseline media scores: normalized 0-1 where 1 = high attention, 0 = ignored.
+# Derived from Google Trends 12-month average for "[country] crisis" (Jan 2025).
+# Used as fallback when pytrends is unavailable.
+_MEDIA_BASELINE = {
+    "UKR": 0.85, "PSE": 0.80, "ISR": 0.78, "SYR": 0.55,
+    "AFG": 0.30, "SDN": 0.18, "YEM": 0.12, "MMR": 0.14,
+    "ETH": 0.20, "COD": 0.08, "SSD": 0.06, "HTI": 0.22,
+    "SOM": 0.15, "NGA": 0.25, "MLI": 0.05, "TCD": 0.04,
+    "BFA": 0.06, "CMR": 0.07, "CAF": 0.04, "NER": 0.05,
+    "MOZ": 0.10, "COL": 0.18, "VEN": 0.20, "HND": 0.08,
+    "GTM": 0.09, "SLV": 0.07,
+}
+
+
+def load_media_scores(country_iso3_list: list[str] | None = None) -> pd.DataFrame:
+    """
+    Fetch media attention scores for crisis countries.
+
+    Tries Google Trends via pytrends first, falls back to static baseline.
+    Returns DataFrame with columns [country_iso3, media_raw, media_score].
+    media_score = 1 - normalized_interest (higher = less attention = more overlooked).
+    """
+    scores = {}
+
+    # Attempt live Google Trends lookup
+    try:
+        from pytrends.request import TrendReq
+
+        pytrends = TrendReq(hl="en-US", tz=360, timeout=(10, 25))
+        iso3_to_query = {
+            "UKR": "Ukraine crisis", "SDN": "Sudan crisis", "YEM": "Yemen crisis",
+            "SYR": "Syria crisis", "AFG": "Afghanistan crisis", "ETH": "Ethiopia crisis",
+            "COD": "Congo crisis", "SSD": "South Sudan crisis", "HTI": "Haiti crisis",
+            "MMR": "Myanmar crisis", "SOM": "Somalia crisis", "NGA": "Nigeria crisis",
+            "MLI": "Mali crisis", "TCD": "Chad crisis", "BFA": "Burkina Faso crisis",
+            "CAF": "Central African Republic crisis", "VEN": "Venezuela crisis",
+            "COL": "Colombia crisis", "MOZ": "Mozambique crisis", "CMR": "Cameroon crisis",
+            "NER": "Niger crisis", "HND": "Honduras crisis", "GTM": "Guatemala crisis",
+            "SLV": "El Salvador crisis",
+        }
+
+        # Query in batches of 5 (pytrends limit)
+        iso3_keys = list(iso3_to_query.keys())
+        for i in range(0, len(iso3_keys), 5):
+            batch_keys = iso3_keys[i : i + 5]
+            batch_queries = [iso3_to_query[k] for k in batch_keys]
+            try:
+                pytrends.build_payload(batch_queries, timeframe="today 12-m")
+                interest = pytrends.interest_over_time()
+                if not interest.empty:
+                    for k, q in zip(batch_keys, batch_queries):
+                        if q in interest.columns:
+                            scores[k] = interest[q].mean() / 100.0
+            except Exception:
+                pass
+
+        print(f"  Google Trends: fetched {len(scores)} scores live")
+    except ImportError:
+        print("  pytrends not installed — using baseline media scores")
+    except Exception as e:
+        print(f"  Google Trends failed ({e}) — using baseline media scores")
+
+    # Fill remaining from baseline
+    all_iso3 = country_iso3_list or list(_MEDIA_BASELINE.keys())
+    for iso3 in all_iso3:
+        if iso3 not in scores:
+            scores[iso3] = _MEDIA_BASELINE.get(iso3, 0.15)  # default: low attention
+
+    # Build DataFrame
+    df = pd.DataFrame(
+        [{"country_iso3": k, "media_raw": v} for k, v in scores.items()]
+    )
+
+    # Normalize to 0-1 range
+    if not df.empty:
+        raw_min, raw_max = df["media_raw"].min(), df["media_raw"].max()
+        if raw_max > raw_min:
+            df["media_normalized"] = (df["media_raw"] - raw_min) / (raw_max - raw_min)
+        else:
+            df["media_normalized"] = 0.5
+        # Invert: high attention → low media_score (less overlooked)
+        df["media_score"] = 1 - df["media_normalized"]
+
+    return df[["country_iso3", "media_raw", "media_score"]].reset_index(drop=True)
+
+
+# ---------------------------------------------------------------------------
 # Public loaders — processed data (for Streamlit pages)
 # ---------------------------------------------------------------------------
 def load_oci_scores() -> pd.DataFrame:
@@ -441,12 +565,17 @@ def run_full_pipeline():
     df_pop = load_population()
     print(f"  -> {len(df_pop)} countries")
 
-    print("\n[4/5] Loading CBPF project data...")
+    print("\n[4/6] Loading CBPF project data...")
     df_cbpf = load_cbpf_projects()
     print(f"  -> {len(df_cbpf)} projects")
 
-    print("\n[5/5] Computing OCI scores...")
-    df_oci = compute_oci_scores(df_hno, df_fts, df_pop)
+    print("\n[5/6] Loading media attention scores...")
+    all_iso3 = df_hno["country_iso3"].dropna().unique().tolist()
+    df_media = load_media_scores(all_iso3)
+    print(f"  -> {len(df_media)} countries scored")
+
+    print("\n[6/6] Computing OCI scores...")
+    df_oci = compute_oci_scores(df_hno, df_fts, df_pop, df_media)
     print(f"  -> {len(df_oci)} scored crises")
 
     # Save processed outputs
@@ -460,6 +589,9 @@ def run_full_pipeline():
 
     df_cbpf.to_csv(PROC_DIR / "projects_clean.csv", index=False)
     print(f"  Saved projects_clean.csv ({len(df_cbpf)} rows)")
+
+    df_media.to_csv(PROC_DIR / "media_scores.csv", index=False)
+    print(f"  Saved media_scores.csv ({len(df_media)} rows)")
 
     # Print top 5 most overlooked
     if not df_oci.empty and "oci_score" in df_oci.columns:

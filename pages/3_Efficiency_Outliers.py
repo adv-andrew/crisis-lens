@@ -103,6 +103,21 @@ with c4:
     n_insuf = (df_display["efficiency_flag"] == "insufficient_data").sum()
     st.metric("Insufficient Data", n_insuf)
 
+# --- Key Finding ---
+df_bench = df_display[df_display["efficiency_flag"] == "high_efficiency"]
+df_low = df_display[df_display["efficiency_flag"] == "low_efficiency"]
+if not df_bench.empty:
+    avg_bench_eff = df_bench["efficiency_ratio"].median()
+    avg_normal_eff = df_display[df_display["efficiency_flag"] == "normal"]["efficiency_ratio"].median()
+    if pd.notna(avg_bench_eff) and pd.notna(avg_normal_eff) and avg_normal_eff > 0:
+        multiplier = avg_bench_eff / avg_normal_eff
+        total_bench_ben = df_bench["beneficiaries_total"].sum()
+        st.info(
+            f"**Key Finding:** The **{len(df_bench)} benchmark projects** achieve a median efficiency "
+            f"**{multiplier:.1f}x** the normal rate, reaching **{total_bench_ben:,.0f} beneficiaries** total. "
+            f"Scaling these models could dramatically improve cost-effectiveness."
+        )
+
 st.markdown("---")
 
 # --- Scatter plot ---

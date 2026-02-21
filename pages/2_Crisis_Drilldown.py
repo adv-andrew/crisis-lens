@@ -125,13 +125,18 @@ col_left, col_right = st.columns(2)
 with col_left:
     st.subheader("OCI Component Breakdown")
 
+    comp_names = ["PIN Normalized", "Severity Weight", "Funding Gap"]
+    comp_values = [
+        r.get("pin_normalized", 0),
+        r.get("severity_weight", 0),
+        r.get("funding_gap", 0),
+    ]
+    if pd.notna(r.get("media_score")) and r.get("media_score", 0) > 0:
+        comp_names.append("Media Neglect")
+        comp_values.append(r.get("media_score", 0))
     components = pd.DataFrame({
-        "Component": ["PIN Normalized", "Severity Weight", "Funding Gap"],
-        "Value": [
-            r.get("pin_normalized", 0),
-            r.get("severity_weight", 0),
-            r.get("funding_gap", 0),
-        ],
+        "Component": comp_names,
+        "Value": comp_values,
     })
     components["Value"] = components["Value"].fillna(0).astype(float)
 
@@ -247,6 +252,22 @@ if not df_cluster.empty:
             )
     else:
         st.info("No cluster detail data for this selection.")
+
+# --- Key Finding ---
+if pd.notna(r.get("funding_gap")) and pd.notna(r.get("requirements_usd_m")):
+    shortfall = r["requirements_usd_m"] * r["funding_gap"]
+    media_note = ""
+    if pd.notna(r.get("media_score")) and r.get("media_score", 0) > 0.5:
+        media_note = (
+            f" Meanwhile, it receives only **{(1 - r['media_score']) * 100:.0f}%** "
+            f"of the global median media attention."
+        )
+    st.error(
+        f"**Key Finding:** {country_name} has a funding shortfall of "
+        f"**${shortfall:,.0f}M** ({r['funding_gap'] * 100:.0f}% unfunded) "
+        f"while **{r.get('people_in_need_k', 0) / 1000:.1f}M people** need assistance."
+        f"{media_note}"
+    )
 
 # --- Historical Trend ---
 st.markdown("---")
