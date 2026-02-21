@@ -236,12 +236,31 @@ body {
 .ci-row {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 8px;
+}
+.ci-country {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ci-flag {
+  width: 22px;
+  height: 14px;
+  border: 1px solid var(--border-light);
+  border-radius: 1px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.7) inset;
+  flex-shrink: 0;
 }
 .ci-name {
   font-size: 13px;
   font-weight: 500;
   color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ci-rank {
   color: var(--text-muted);
@@ -660,6 +679,12 @@ const COUNTRY_CENTERS = {
 };
 COUNTRY_CENTERS.SDN = [30.0, 15.5];
 
+const ISO3_TO_ISO2 = {
+  SDN:'sd', COD:'cd', AFG:'af', YEM:'ye', ETH:'et', SYR:'sy', MMR:'mm', UKR:'ua',
+  SSD:'ss', COL:'co', NGA:'ng', VEN:'ve', MLI:'ml', TCD:'td', SOM:'so', HTI:'ht',
+  BFA:'bf', CAF:'cf', HND:'hn', NER:'ne', CMR:'cm', MOZ:'mz', GTM:'gt', SLV:'sv'
+};
+
 let selectedYear = 2026;
 let selectedLayer = 'oci';
 let selectedCountry = null;
@@ -694,6 +719,10 @@ function valToColor(v) {
 function fmtM(v) { return v >= 1000 ? (v/1000).toFixed(1)+'B' : v.toFixed(0)+'M'; }
 function fmtK(v) { return v >= 1000 ? (v/1000).toFixed(1)+'M' : v.toFixed(0)+'K'; }
 function fmtPct(v) { return (v*100).toFixed(1)+'%'; }
+function getFlagUrl(iso3) {
+  const iso2 = ISO3_TO_ISO2[iso3];
+  return iso2 ? 'https://flagcdn.com/h20/' + iso2 + '.png' : '';
+}
 
 mapboxgl.accessToken = 'pk.eyJ1IjoicmFhbWlhIiwiYSI6ImNta3J1NWgxaDE1cWszZHEwZmlwbW1ucHUifQ.zbeIUNvE9rfsCU-0b9Db4A';
 
@@ -826,9 +855,13 @@ function renderSidebar() {
 
   list.innerHTML = data.map(d => {
     const sel = selectedCountry === d.iso;
+    const flagUrl = getFlagUrl(d.iso);
     return '<div class="crisis-item'+(sel?' sel':'')+'" data-iso="'+d.iso+'">'+
       '<div class="ci-row">'+
-        '<div class="ci-name"><span class="ci-rank">'+d.rank+'.</span> '+d.name+'</div>'+
+        '<div class="ci-country">'+
+          '<img class="ci-flag" src="'+flagUrl+'" alt="'+d.name+' flag" loading="lazy" decoding="async" referrerpolicy="no-referrer">'+
+          '<div class="ci-name"><span class="ci-rank">'+d.rank+'.</span> '+d.name+'</div>'+
+        '</div>'+
         '<div class="ci-val">'+d.oci.toFixed(3)+'</div>'+
       '</div>'+
       '<div class="ci-meta"><span>Gap '+fmtPct(d.gap)+'</span><span>PIN '+fmtK(d.pin_k)+'</span><span>Sev '+d.severity+'/5</span></div>'+
