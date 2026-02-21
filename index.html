@@ -7,374 +7,370 @@
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.js"></script>
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.9.4/mapbox-gl.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
-
+  /* ── OCHA Common Design System Tokens ── */
   :root {
-    --un-blue: #0072BC;
-    --un-blue-dark: #005A96;
-    --un-blue-light: #EBF5FB;
-    --hum-red: #CD3A1F;
-    --hum-red-light: #FEF2F0;
-    --amber: #D4820C;
-    --amber-light: #FDF6E9;
-    --green: #1A9E4A;
-    --green-light: #EEF9F2;
-    --text-primary: #1A2233;
-    --text-secondary: #5C6B7F;
-    --text-tertiary: #8C96A6;
-    --border: #DFE3E8;
-    --border-light: #EEF0F3;
-    --surface: #FFFFFF;
-    --surface-raised: #F7F8FA;
-    --surface-inset: #F1F3F5;
+    --cd-ocha-blue: #1f69b3;
+    --cd-blue-dark: #144372;
+    --cd-blue-bright: #82b5e9;
+    --cd-blue-grey: #e6ecf1;
+    --cd-red: #cd3a1f;
+    --cd-highlight-red: #eb5c6d;
+    --cd-orange: #db7b18;
+    --cd-yellow: #d5de26;
+    --cd-green: #7fb92f;
+    --cd-grey-light: #f2f2f2;
+    --cd-grey-mid: #595959;
+    --cd-grey-dark: #4a4a4a;
+    --cd-white: #ffffff;
+    --cd-site-bg: #f2f2f2;
+    --cd-site-header-height: 50px;
+    --cd-border: #d4d4d4;
+    --cd-border-light: #e8e8e8;
+    --cd-text: #333333;
+    --cd-text-light: #666666;
+    --cd-text-muted: #999999;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    font-family: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: var(--surface-raised);
-    color: var(--text-primary);
+    font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: var(--cd-site-bg);
+    color: var(--cd-text);
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    font-size: 14px;
+    line-height: 1.4;
   }
 
-  /* ── Top Navigation ── */
-  .topnav {
+  /* ── OCHA-style Site Header ── */
+  .site-header {
     position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-    height: 52px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    height: var(--cd-site-header-height);
+    background: var(--cd-blue-dark);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 20px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    padding: 0 16px;
   }
 
-  .topnav-left {
+  .site-header__left {
     display: flex;
     align-items: center;
     gap: 12px;
   }
 
-  .topnav-logo {
+  .site-header__brand {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
+    color: var(--cd-white);
+    text-decoration: none;
   }
 
-  .topnav-logo svg {
-    width: 26px;
-    height: 26px;
+  .site-header__brand-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--cd-ocha-blue);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .topnav-logo .brand-name {
-    font-size: 16px;
+  .site-header__brand-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .site-header__brand-name {
+    font-family: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+    font-size: 18px;
     font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.3px;
+    color: var(--cd-white);
+    letter-spacing: 0.2px;
   }
 
-  .topnav-divider {
+  .site-header__sep {
     width: 1px;
     height: 24px;
-    background: var(--border);
+    background: rgba(255,255,255,0.2);
   }
 
-  .topnav-title {
+  .site-header__subtitle {
     font-size: 13px;
-    font-weight: 500;
-    color: var(--text-secondary);
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
   }
 
-  .topnav-right {
+  .site-header__right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
   }
 
-  .topnav-badge {
+  .site-header__badge {
     font-size: 11px;
-    font-weight: 500;
-    color: var(--text-tertiary);
-    background: var(--surface-raised);
-    border: 1px solid var(--border);
-    padding: 4px 10px;
-    border-radius: 4px;
-  }
-
-  .topnav-links {
-    display: flex;
-    gap: 2px;
-  }
-
-  .topnav-link {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s, color 0.15s;
-  }
-  .topnav-link:hover {
-    background: var(--surface-raised);
-    color: var(--text-primary);
-  }
-  .topnav-link.active {
-    background: var(--un-blue-light);
-    color: var(--un-blue);
+    font-weight: 400;
+    color: rgba(255,255,255,0.6);
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 3px 8px;
+    border-radius: 3px;
   }
 
   /* ── Map Container ── */
   #map {
     position: fixed;
-    top: 52px;
-    left: 340px;
+    top: var(--cd-site-header-height);
+    left: 320px;
     right: 0;
-    bottom: 44px;
+    bottom: 36px;
   }
 
   /* ── Left Sidebar ── */
   .sidebar {
     position: fixed;
-    top: 52px;
+    top: var(--cd-site-header-height);
     left: 0;
-    bottom: 44px;
-    width: 340px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
+    bottom: 36px;
+    width: 320px;
+    background: var(--cd-white);
+    border-right: 1px solid var(--cd-border);
     display: flex;
     flex-direction: column;
     z-index: 30;
   }
 
-  .sidebar-header {
-    padding: 16px 16px 12px;
-    border-bottom: 1px solid var(--border-light);
+  .sidebar__header {
+    padding: 12px;
+    border-bottom: 1px solid var(--cd-border-light);
+    background: var(--cd-white);
   }
 
-  .sidebar-header h2 {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
+  .sidebar__title {
+    font-family: 'Roboto Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cd-text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
     display: flex;
     align-items: center;
     gap: 8px;
   }
 
-  .sidebar-header .badge {
+  .sidebar__count {
+    font-family: 'Roboto', sans-serif;
     font-size: 11px;
-    font-weight: 600;
-    padding: 1px 7px;
-    border-radius: 3px;
-    background: var(--un-blue);
-    color: #fff;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 2px;
+    background: var(--cd-ocha-blue);
+    color: var(--cd-white);
+    text-transform: none;
+    letter-spacing: 0;
   }
 
   /* ── Controls ── */
-  .controls-row {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border-light);
+  .controls {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--cd-border-light);
     display: flex;
     gap: 4px;
+    background: var(--cd-white);
   }
 
-  .ctrl-btn {
-    padding: 5px 12px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-secondary);
+  .btn {
+    padding: 4px 12px;
+    border-radius: 3px;
+    border: 1px solid var(--cd-border);
+    background: var(--cd-white);
+    color: var(--cd-text-light);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
+    transition: background-color 0.6s ease-out;
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.5;
   }
-  .ctrl-btn:hover {
-    border-color: var(--un-blue);
-    color: var(--un-blue);
+  .btn:hover {
+    background: var(--cd-grey-light);
+    color: var(--cd-text);
   }
-  .ctrl-btn.active {
-    background: var(--un-blue);
-    color: #fff;
-    border-color: var(--un-blue);
+  .btn.active {
+    background: var(--cd-ocha-blue);
+    color: var(--cd-white);
+    border-color: var(--cd-ocha-blue);
   }
 
-  .layer-row {
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border-light);
+  .layer-controls {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--cd-border-light);
     display: flex;
-    gap: 4px;
+    gap: 2px;
+    background: var(--cd-grey-light);
   }
 
   .layer-btn {
     flex: 1;
-    padding: 5px 6px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-secondary);
+    padding: 4px 4px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--cd-text-light);
     font-size: 11px;
-    font-weight: 500;
+    font-weight: 400;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: background-color 0.2s;
     text-align: center;
-    font-family: inherit;
+    font-family: 'Roboto', sans-serif;
   }
   .layer-btn:hover {
-    background: var(--surface-raised);
-    color: var(--text-primary);
+    background: var(--cd-white);
+    color: var(--cd-text);
   }
   .layer-btn.active {
-    background: var(--un-blue-light);
-    color: var(--un-blue);
-    border-color: var(--un-blue);
-    font-weight: 600;
+    background: var(--cd-white);
+    color: var(--cd-ocha-blue);
+    border-color: var(--cd-border);
+    font-weight: 500;
   }
 
   /* ── Crisis List ── */
   .crisis-list {
     flex: 1;
     overflow-y: auto;
-    padding: 4px 0;
   }
-  .crisis-list::-webkit-scrollbar { width: 6px; }
+  .crisis-list::-webkit-scrollbar { width: 5px; }
   .crisis-list::-webkit-scrollbar-track { background: transparent; }
-  .crisis-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  .crisis-list::-webkit-scrollbar-thumb:hover { background: #C4C9D1; }
+  .crisis-list::-webkit-scrollbar-thumb { background: var(--cd-border); border-radius: 3px; }
 
   .crisis-item {
-    padding: 10px 16px;
+    padding: 8px 12px;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.15s;
     border-left: 3px solid transparent;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--cd-border-light);
   }
   .crisis-item:hover {
-    background: var(--surface-raised);
+    background: var(--cd-grey-light);
   }
   .crisis-item.selected {
-    background: var(--un-blue-light);
-    border-left-color: var(--un-blue);
+    background: var(--cd-blue-grey);
+    border-left-color: var(--cd-ocha-blue);
   }
 
-  .crisis-item .ci-top {
+  .ci-row {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    margin-bottom: 3px;
   }
-  .crisis-item .ci-name {
+  .ci-name {
     font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    font-weight: 500;
+    color: var(--cd-text);
   }
-  .crisis-item .ci-rank {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--text-tertiary);
-    min-width: 22px;
+  .ci-rank {
+    font-size: 11px;
+    color: var(--cd-text-muted);
+    margin-right: 4px;
   }
-  .crisis-item .ci-oci {
-    font-size: 14px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+  .ci-score {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cd-text);
+    font-variant-numeric: tabular-nums;
   }
-  .crisis-item .ci-bar {
-    height: 3px;
-    border-radius: 2px;
-    background: var(--border-light);
-    margin-top: 5px;
+  .ci-bar {
+    height: 2px;
+    background: var(--cd-border-light);
+    margin-top: 4px;
     overflow: hidden;
   }
-  .crisis-item .ci-bar-fill {
+  .ci-bar-fill {
     height: 100%;
-    border-radius: 2px;
     transition: width 0.4s ease;
   }
-  .crisis-item .ci-meta {
+  .ci-meta {
     display: flex;
-    gap: 12px;
-    margin-top: 4px;
+    gap: 10px;
+    margin-top: 3px;
     font-size: 11px;
-    color: var(--text-tertiary);
-    font-weight: 400;
+    color: var(--cd-text-muted);
   }
 
   /* ── Right Detail Panel ── */
   .detail-panel {
     position: fixed;
-    top: 52px;
+    top: var(--cd-site-header-height);
     right: 0;
-    bottom: 44px;
+    bottom: 36px;
     z-index: 35;
     width: 380px;
-    background: var(--surface);
-    border-left: 1px solid var(--border);
+    background: var(--cd-white);
+    border-left: 1px solid var(--cd-border);
     display: flex;
     flex-direction: column;
     overflow: hidden;
     transform: translateX(100%);
-    transition: transform 0.3s ease;
-    box-shadow: -4px 0 16px rgba(0,0,0,0.06);
+    transition: transform 0.25s ease;
+    box-shadow: -2px 0 8px rgba(0,0,0,0.06);
   }
   .detail-panel.open {
     transform: translateX(0);
   }
 
   .detail-header {
-    padding: 16px 16px 14px;
-    border-bottom: 1px solid var(--border);
+    padding: 12px;
+    border-bottom: 1px solid var(--cd-border);
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    background: var(--surface);
+    background: var(--cd-blue-dark);
+    color: var(--cd-white);
   }
-  .detail-header h3 {
+  .detail-header__title {
+    font-family: 'Roboto Condensed', sans-serif;
     font-size: 16px;
     font-weight: 700;
-    color: var(--text-primary);
-    letter-spacing: -0.2px;
+    color: var(--cd-white);
+  }
+  .detail-header__sub {
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+    margin-top: 2px;
   }
   .detail-header .close-btn {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-secondary);
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: transparent;
+    color: rgba(255,255,255,0.7);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
-    transition: all 0.15s;
+    font-size: 14px;
+    transition: background 0.2s;
     font-family: inherit;
   }
   .detail-header .close-btn:hover {
-    background: var(--surface-raised);
-    color: var(--text-primary);
+    background: rgba(255,255,255,0.1);
+    color: var(--cd-white);
   }
 
   .detail-body {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 12px;
   }
-  .detail-body::-webkit-scrollbar { width: 6px; }
+  .detail-body::-webkit-scrollbar { width: 5px; }
   .detail-body::-webkit-scrollbar-track { background: transparent; }
-  .detail-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .detail-body::-webkit-scrollbar-thumb { background: var(--cd-border); border-radius: 3px; }
 
   /* ── KPI Cards ── */
   .kpi-grid {
@@ -384,93 +380,150 @@
     margin-bottom: 16px;
   }
   .kpi-card {
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-light);
-    background: var(--surface-raised);
+    padding: 10px;
+    border: 1px solid var(--cd-border-light);
+    background: var(--cd-white);
   }
-  .kpi-card .kpi-label {
+  .kpi-card--alert {
+    border-left: 3px solid var(--cd-red);
+  }
+  .kpi-card--warn {
+    border-left: 3px solid var(--cd-orange);
+  }
+  .kpi-card--info {
+    border-left: 3px solid var(--cd-ocha-blue);
+  }
+  .kpi-card--ok {
+    border-left: 3px solid var(--cd-green);
+  }
+  .kpi-label {
     font-size: 11px;
-    color: var(--text-tertiary);
-    font-weight: 500;
-    margin-bottom: 4px;
+    color: var(--cd-text-muted);
+    font-weight: 400;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
   }
-  .kpi-card .kpi-value {
+  .kpi-value {
     font-size: 20px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    letter-spacing: -0.5px;
+    color: var(--cd-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
   }
-  .kpi-card .kpi-sub {
+  .kpi-sub {
     font-size: 11px;
-    color: var(--text-tertiary);
-    margin-top: 2px;
+    color: var(--cd-text-muted);
+    margin-top: 1px;
+  }
+
+  /* ── Section headings ── */
+  .section-heading {
+    font-family: 'Roboto Condensed', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cd-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--cd-border-light);
   }
 
   /* ── Decomposition Bars ── */
   .decomp-section {
     margin-bottom: 16px;
   }
-  .decomp-section h4 {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border-light);
-  }
   .decomp-bar {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 7px;
+    gap: 8px;
+    margin-bottom: 6px;
   }
-  .decomp-bar .db-label {
+  .db-label {
     font-size: 12px;
-    font-weight: 400;
-    color: var(--text-secondary);
-    width: 100px;
+    color: var(--cd-text-light);
+    width: 90px;
     flex-shrink: 0;
   }
-  .decomp-bar .db-track {
+  .db-track {
     flex: 1;
     height: 6px;
-    border-radius: 3px;
-    background: var(--surface-inset);
+    background: var(--cd-grey-light);
     overflow: hidden;
   }
-  .decomp-bar .db-fill {
+  .db-fill {
     height: 100%;
-    border-radius: 3px;
     transition: width 0.5s ease;
   }
-  .decomp-bar .db-val {
+  .db-val {
     font-size: 12px;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
     width: 44px;
     text-align: right;
     flex-shrink: 0;
-    color: var(--text-primary);
+    color: var(--cd-text);
+    font-variant-numeric: tabular-nums;
   }
 
   /* ── Chart Container ── */
-  .chart-container {
+  .chart-section {
     margin-bottom: 16px;
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-light);
-    background: var(--surface-raised);
+    padding: 10px;
+    border: 1px solid var(--cd-border-light);
+    background: var(--cd-white);
   }
-  .chart-container h4 {
+  .chart-section canvas {
+    max-height: 160px;
+  }
+
+  /* ── Funding Bar ── */
+  .funding-bar-section {
+    margin-bottom: 16px;
+  }
+  .funding-bar__track {
+    height: 14px;
+    display: flex;
+    overflow: hidden;
+    border: 1px solid var(--cd-border-light);
+  }
+  .funding-bar__funded {
+    background: var(--cd-green);
+    transition: width 0.5s;
+  }
+  .funding-bar__gap {
+    flex: 1;
+    background: var(--cd-grey-light);
+  }
+  .funding-bar__labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--cd-text-light);
+    margin-top: 4px;
+  }
+
+  /* ── Formula ── */
+  .formula-section {
+    margin-top: 12px;
+    padding: 10px;
+    background: var(--cd-grey-light);
+    border: 1px solid var(--cd-border-light);
     font-size: 12px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
+    font-family: 'Roboto Condensed', monospace;
+    color: var(--cd-text);
+    line-height: 1.7;
   }
-  .chart-container canvas {
-    max-height: 180px;
+  .formula-section .formula-heading {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--cd-text-muted);
+    margin-bottom: 4px;
   }
+  .formula-section .muted { color: var(--cd-text-muted); }
+  .formula-section .result { font-weight: 700; }
 
   /* ── Bottom Stats Bar ── */
   .stats-bar {
@@ -479,99 +532,95 @@
     left: 0;
     right: 0;
     z-index: 40;
-    height: 44px;
-    background: var(--surface);
-    border-top: 1px solid var(--border);
+    height: 36px;
+    background: var(--cd-blue-dark);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0;
-    padding: 0 24px;
+    padding: 0 16px;
   }
-  .stats-bar .stat {
+  .stat {
     display: flex;
     align-items: baseline;
-    gap: 5px;
-    padding: 0 20px;
-    border-right: 1px solid var(--border-light);
+    gap: 4px;
+    padding: 0 16px;
+    border-right: 1px solid rgba(255,255,255,0.1);
   }
-  .stats-bar .stat:last-child {
+  .stat:last-child {
     border-right: none;
   }
-  .stats-bar .stat-val {
-    font-size: 14px;
+  .stat-val {
+    font-size: 13px;
     font-weight: 700;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--text-primary);
-    letter-spacing: -0.3px;
+    color: var(--cd-white);
+    font-variant-numeric: tabular-nums;
   }
-  .stats-bar .stat-label {
+  .stat-label {
     font-size: 11px;
-    color: var(--text-tertiary);
-    font-weight: 400;
+    color: rgba(255,255,255,0.5);
   }
 
   /* ── Legend ── */
   .legend {
     position: fixed;
-    bottom: 54px;
-    right: 12px;
+    bottom: 44px;
+    right: 8px;
     z-index: 40;
-    padding: 6px 12px;
-    border-radius: 4px;
+    padding: 4px 10px;
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 2px;
     font-size: 10px;
-    color: var(--text-secondary);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    color: var(--cd-text-light);
+    background: var(--cd-white);
+    border: 1px solid var(--cd-border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   }
-  .legend .lg-block {
-    width: 20px;
+  .lg-block {
+    width: 18px;
     height: 8px;
-    border-radius: 1px;
   }
-  .legend .lg-label {
+  .lg-label {
     margin-left: 4px;
     font-weight: 500;
   }
 
   /* ── Mapbox Overrides ── */
   .mapboxgl-popup-content {
-    background: var(--surface) !important;
-    border: 1px solid var(--border) !important;
-    border-radius: 6px !important;
-    color: var(--text-primary) !important;
-    padding: 12px 14px !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
-    min-width: 200px;
-    font-family: 'Source Sans 3', sans-serif !important;
+    background: var(--cd-white) !important;
+    border: 1px solid var(--cd-border) !important;
+    border-radius: 3px !important;
+    color: var(--cd-text) !important;
+    padding: 10px 12px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12) !important;
+    min-width: 190px;
+    font-family: 'Roboto', sans-serif !important;
+    font-size: 13px;
   }
   .mapboxgl-popup-tip {
-    border-top-color: var(--surface) !important;
+    border-top-color: var(--cd-white) !important;
   }
   .mapboxgl-popup-close-button {
-    color: var(--text-tertiary) !important;
+    color: var(--cd-text-muted) !important;
     font-size: 16px !important;
-    right: 6px !important;
-    top: 4px !important;
+    right: 4px !important;
+    top: 2px !important;
   }
   .mapboxgl-popup-close-button:hover {
-    color: var(--text-primary) !important;
+    color: var(--cd-text) !important;
     background: none !important;
   }
   .mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib {
     opacity: 0.5;
   }
   .mapboxgl-ctrl-group {
-    border-radius: 4px !important;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
-    border: 1px solid var(--border) !important;
+    border-radius: 3px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    border: 1px solid var(--cd-border) !important;
   }
   .mapboxgl-ctrl-group button {
-    border-bottom: 1px solid var(--border-light) !important;
+    border-bottom: 1px solid var(--cd-border-light) !important;
   }
 
   /* ── Loading ── */
@@ -579,63 +628,38 @@
     position: fixed;
     inset: 0;
     z-index: 100;
-    background: var(--surface-raised);
+    background: var(--cd-grey-light);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.5s;
+    transition: opacity 0.4s;
     pointer-events: none;
   }
   .loading-overlay.hidden { opacity: 0; }
   .loading-spinner {
-    width: 32px;
-    height: 32px;
-    border: 3px solid var(--border);
-    border-top-color: var(--un-blue);
+    width: 28px;
+    height: 28px;
+    border: 3px solid var(--cd-border);
+    border-top-color: var(--cd-ocha-blue);
     border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-    margin-bottom: 12px;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 10px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .loading-text {
     font-size: 13px;
-    color: var(--text-secondary);
-    font-weight: 500;
+    color: var(--cd-text-light);
   }
 
-  /* ── Severity dot for detail panel ── */
-  .severity-dot {
+  .severity-indicator {
     display: inline-block;
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    margin-right: 4px;
+    border-radius: 1px;
+    margin-right: 3px;
     vertical-align: middle;
   }
-
-  /* ── Formula card ── */
-  .formula-card {
-    margin-top: 12px;
-    padding: 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border-light);
-    background: var(--surface-inset);
-  }
-  .formula-card .formula-title {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text-tertiary);
-    margin-bottom: 6px;
-  }
-  .formula-card code {
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--text-primary);
-    line-height: 1.7;
-  }
-  .formula-card .muted { color: var(--text-tertiary); }
-  .formula-card .result { font-weight: 700; }
 </style>
 </head>
 <body>
@@ -643,42 +667,40 @@
 <!-- Loading -->
 <div class="loading-overlay" id="loading">
   <div class="loading-spinner"></div>
-  <div class="loading-text">Loading crisis data...</div>
+  <div class="loading-text">Loading crisis data</div>
 </div>
 
-<!-- Top Navigation -->
-<nav class="topnav">
-  <div class="topnav-left">
-    <div class="topnav-logo">
-      <svg viewBox="0 0 26 26" fill="none">
-        <rect width="26" height="26" rx="5" fill="#0072BC"/>
-        <path d="M7 13L10.5 9L14 13L17.5 9L19 11" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M7 17L10.5 13L14 17L17.5 13L19 15" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-      </svg>
-      <span class="brand-name">CrisisLens</span>
-    </div>
-    <div class="topnav-divider"></div>
-    <span class="topnav-title">Overlooked Crisis Index</span>
+<!-- OCHA-style Site Header -->
+<header class="site-header">
+  <div class="site-header__left">
+    <a class="site-header__brand" href="#">
+      <div class="site-header__brand-icon">
+        <svg viewBox="0 0 18 18" fill="none"><path d="M3 9L6 5.5L9 9L12 5.5L15 9" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 13L6 9.5L9 13L12 9.5L15 13" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/></svg>
+      </div>
+      <span class="site-header__brand-name">CrisisLens</span>
+    </a>
+    <div class="site-header__sep"></div>
+    <span class="site-header__subtitle">Overlooked Crisis Index Dashboard</span>
   </div>
-  <div class="topnav-right">
-    <span class="topnav-badge">Hacklytics 2026 &middot; Databricks &times; UN</span>
+  <div class="site-header__right">
+    <span class="site-header__badge">Hacklytics 2026 &middot; Databricks &times; OCHA</span>
   </div>
-</nav>
+</header>
 
 <!-- Map -->
 <div id="map"></div>
 
 <!-- Left Sidebar -->
 <div class="sidebar" id="sidebar">
-  <div class="sidebar-header">
-    <h2>Crisis Monitor <span class="badge" id="crisis-count">24</span></h2>
+  <div class="sidebar__header">
+    <div class="sidebar__title">Crisis Monitor <span class="sidebar__count" id="crisis-count">24</span></div>
   </div>
-  <div class="controls-row">
-    <button class="ctrl-btn active" data-year="2026">2026</button>
-    <button class="ctrl-btn" data-year="2025">2025</button>
-    <button class="ctrl-btn" data-year="2024">2024</button>
+  <div class="controls">
+    <button class="btn active" data-year="2026">2026</button>
+    <button class="btn" data-year="2025">2025</button>
+    <button class="btn" data-year="2024">2024</button>
   </div>
-  <div class="layer-row">
+  <div class="layer-controls">
     <button class="layer-btn active" data-layer="oci">OCI Score</button>
     <button class="layer-btn" data-layer="gap">Funding Gap</button>
     <button class="layer-btn" data-layer="pin">People in Need</button>
@@ -691,8 +713,8 @@
 <div class="detail-panel" id="detail-panel">
   <div class="detail-header">
     <div>
-      <h3 id="detail-country">&mdash;</h3>
-      <div style="font-size:12px;color:var(--text-tertiary);margin-top:2px" id="detail-plan">&mdash;</div>
+      <div class="detail-header__title" id="detail-country">&mdash;</div>
+      <div class="detail-header__sub" id="detail-plan">&mdash;</div>
     </div>
     <button class="close-btn" id="close-detail">&times;</button>
   </div>
@@ -701,14 +723,14 @@
 
 <!-- Legend -->
 <div class="legend" id="legend">
-  <span style="margin-right:3px;font-weight:500">Low</span>
-  <div class="lg-block" style="background:#1A9E4A"></div>
-  <div class="lg-block" style="background:#7CB342"></div>
-  <div class="lg-block" style="background:#D4820C"></div>
-  <div class="lg-block" style="background:#E65100"></div>
-  <div class="lg-block" style="background:#CD3A1F"></div>
-  <div class="lg-block" style="background:#8B1A10"></div>
-  <span style="margin-left:3px;font-weight:500">High</span>
+  <span style="margin-right:2px;font-weight:500">Low</span>
+  <div class="lg-block" style="background:#7fb92f"></div>
+  <div class="lg-block" style="background:#a8c648"></div>
+  <div class="lg-block" style="background:#db7b18"></div>
+  <div class="lg-block" style="background:#d45b27"></div>
+  <div class="lg-block" style="background:#cd3a1f"></div>
+  <div class="lg-block" style="background:#8b1a10"></div>
+  <span style="margin-left:2px;font-weight:500">High</span>
   <span class="lg-label" id="legend-label">OCI Score</span>
 </div>
 
@@ -829,12 +851,12 @@ function getLayerLabel() {
 }
 
 function valToColor(v) {
-  if (v <= 0.2) return '#1A9E4A';
-  if (v <= 0.4) return '#7CB342';
-  if (v <= 0.55) return '#D4820C';
-  if (v <= 0.7) return '#E65100';
-  if (v <= 0.85) return '#CD3A1F';
-  return '#8B1A10';
+  if (v <= 0.2) return '#7fb92f';
+  if (v <= 0.4) return '#a8c648';
+  if (v <= 0.55) return '#db7b18';
+  if (v <= 0.7) return '#d45b27';
+  if (v <= 0.85) return '#cd3a1f';
+  return '#8b1a10';
 }
 
 function fmtM(v) { return v >= 1000 ? (v/1000).toFixed(1)+'B' : v.toFixed(0)+'M'; }
@@ -873,7 +895,7 @@ map.on('load', () => {
     source: 'countries',
     'source-layer': 'country_boundaries',
     paint: {
-      'fill-color': '#CD3A1F',
+      'fill-color': '#cd3a1f',
       'fill-opacity': 0.6
     },
     filter: ['in', 'iso_3166_1_alpha_3', '']
@@ -898,7 +920,7 @@ map.on('load', () => {
     source: 'countries',
     'source-layer': 'country_boundaries',
     paint: {
-      'line-color': '#0072BC',
+      'line-color': '#1f69b3',
       'line-width': 2.5,
       'line-opacity': 1
     },
@@ -936,7 +958,7 @@ map.on('load', () => {
       'text-allow-overlap': false
     },
     paint: {
-      'text-color': '#1A2233',
+      'text-color': '#333333',
       'text-halo-color': 'rgba(255,255,255,0.85)',
       'text-halo-width': 1.2
     }
@@ -969,12 +991,12 @@ map.on('load', () => {
     if (e.features.length > 0) {
       const p = e.features[0].properties;
       popup.setLngLat(e.lngLat).setHTML(`
-        <div style="font-size:14px;font-weight:600;margin-bottom:6px;color:#1A2233">${p.name}</div>
-        <div style="font-size:12px;color:#5C6B7F;display:flex;flex-direction:column;gap:4px">
-          <div>OCI Score: <span style="color:${valToColor(Number(p.oci))};font-weight:600">${Number(p.oci).toFixed(3)}</span> <span style="color:#8C96A6">#${p.rank}</span></div>
-          <div>Funding Gap: <span style="font-weight:600;color:#1A2233">${(Number(p.gap)*100).toFixed(1)}%</span></div>
-          <div>People in Need: <span style="font-weight:600;color:#1A2233">${fmtK(Number(p.pin_k))}</span></div>
-          <div>Media Neglect: <span style="font-weight:600;color:#1A2233">${(Number(p.media)*100).toFixed(0)}%</span></div>
+        <div style="font-weight:500;margin-bottom:4px">${p.name}</div>
+        <div style="font-size:12px;color:#666;line-height:1.6">
+          OCI: <strong>${Number(p.oci).toFixed(3)}</strong> (rank #${p.rank})<br>
+          Funding gap: <strong>${(Number(p.gap)*100).toFixed(1)}%</strong><br>
+          People in need: <strong>${fmtK(Number(p.pin_k))}</strong><br>
+          Media neglect: <strong>${(Number(p.media)*100).toFixed(0)}%</strong>
         </div>
       `).addTo(map);
     }
@@ -1035,18 +1057,18 @@ function renderSidebar() {
     const isSelected = selectedCountry === d.iso;
     return `
       <div class="crisis-item ${isSelected ? 'selected' : ''}" data-iso="${d.iso}">
-        <div class="ci-top">
+        <div class="ci-row">
           <div class="ci-name">
-            <span class="ci-rank">#${d.rank}</span>
+            <span class="ci-rank">${d.rank}.</span>
             ${d.name}
           </div>
-          <div class="ci-oci" style="color:${color}">${d.oci.toFixed(3)}</div>
+          <div class="ci-score">${d.oci.toFixed(3)}</div>
         </div>
         <div class="ci-bar"><div class="ci-bar-fill" style="width:${v*100}%;background:${color}"></div></div>
         <div class="ci-meta">
           <span>Gap ${fmtPct(d.gap)}</span>
           <span>PIN ${fmtK(d.pin_k)}</span>
-          <span>Severity ${d.severity}/5</span>
+          <span>Sev. ${d.severity}/5</span>
         </div>
       </div>
     `;
@@ -1076,90 +1098,88 @@ function selectCountry(iso) {
 
   const panel = document.getElementById('detail-panel');
   document.getElementById('detail-country').textContent = d.name;
-  document.getElementById('detail-plan').textContent = d.plan + ' \u2014 Rank #' + d.rank;
+  document.getElementById('detail-plan').textContent = d.plan + ' \u2014 Rank #' + d.rank + ' of 65';
 
-  const sevColor = d.severity >= 4 ? 'var(--hum-red)' : d.severity >= 3 ? 'var(--amber)' : 'var(--green)';
+  const sevColor = d.severity >= 4 ? 'var(--cd-red)' : d.severity >= 3 ? 'var(--cd-orange)' : 'var(--cd-green)';
+  const ociClass = d.oci > 0.7 ? 'kpi-card--alert' : d.oci > 0.3 ? 'kpi-card--warn' : 'kpi-card--info';
+  const gapClass = d.gap > 0.7 ? 'kpi-card--alert' : d.gap > 0.4 ? 'kpi-card--warn' : 'kpi-card--ok';
 
   const body = document.getElementById('detail-body');
   body.innerHTML = `
     <div class="kpi-grid">
-      <div class="kpi-card">
+      <div class="kpi-card ${ociClass}">
         <div class="kpi-label">OCI Score</div>
-        <div class="kpi-value" style="color:${valToColor(d.oci)}">${d.oci.toFixed(3)}</div>
+        <div class="kpi-value">${d.oci.toFixed(3)}</div>
         <div class="kpi-sub">Rank #${d.rank} of 65</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Funding gap</div>
-        <div class="kpi-value" style="color:${d.gap > 0.7 ? 'var(--hum-red)' : d.gap > 0.4 ? 'var(--amber)' : 'var(--text-primary)'}">${fmtPct(d.gap)}</div>
+      <div class="kpi-card ${gapClass}">
+        <div class="kpi-label">Funding Gap</div>
+        <div class="kpi-value">${fmtPct(d.gap)}</div>
         <div class="kpi-sub">$${fmtM(d.fund)} of $${fmtM(d.req)}</div>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">People in need</div>
+      <div class="kpi-card kpi-card--info">
+        <div class="kpi-label">People in Need</div>
         <div class="kpi-value">${fmtK(d.pin_k)}</div>
         <div class="kpi-sub">${fmtPct(d.pin_norm)} of population</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-label">Media neglect</div>
-        <div class="kpi-value">${(d.media*100).toFixed(0)}%</div>
-        <div class="kpi-sub"><span class="severity-dot" style="background:${sevColor}"></span>Severity ${d.severity}/5</div>
+        <div class="kpi-label">Severity / Media</div>
+        <div class="kpi-value"><span class="severity-indicator" style="background:${sevColor}"></span>${d.severity}/5</div>
+        <div class="kpi-sub">Media neglect ${(d.media*100).toFixed(0)}%</div>
       </div>
     </div>
 
     <div class="decomp-section">
-      <h4>OCI component breakdown</h4>
+      <div class="section-heading">OCI Component Breakdown</div>
       <div class="decomp-bar">
         <div class="db-label">PIN / Pop</div>
-        <div class="db-track"><div class="db-fill" style="width:${d.pin_norm*100}%;background:var(--hum-red)"></div></div>
+        <div class="db-track"><div class="db-fill" style="width:${d.pin_norm*100}%;background:var(--cd-red)"></div></div>
         <div class="db-val">${d.pin_norm.toFixed(2)}</div>
       </div>
       <div class="decomp-bar">
         <div class="db-label">Severity</div>
-        <div class="db-track"><div class="db-fill" style="width:${d.sev*100}%;background:var(--amber)"></div></div>
+        <div class="db-track"><div class="db-fill" style="width:${d.sev*100}%;background:var(--cd-orange)"></div></div>
         <div class="db-val">${d.sev.toFixed(2)}</div>
       </div>
       <div class="decomp-bar">
         <div class="db-label">Funding gap</div>
-        <div class="db-track"><div class="db-fill" style="width:${d.gap*100}%;background:var(--un-blue)"></div></div>
+        <div class="db-track"><div class="db-fill" style="width:${d.gap*100}%;background:var(--cd-ocha-blue)"></div></div>
         <div class="db-val">${fmtPct(d.gap)}</div>
       </div>
       <div class="decomp-bar">
         <div class="db-label">Media neglect</div>
-        <div class="db-track"><div class="db-fill" style="width:${d.media*100}%;background:var(--text-tertiary)"></div></div>
+        <div class="db-track"><div class="db-fill" style="width:${d.media*100}%;background:var(--cd-grey-mid)"></div></div>
         <div class="db-val">${(d.media*100).toFixed(0)}%</div>
       </div>
     </div>
 
-    <div class="chart-container">
-      <h4>Funding over time ($M)</h4>
+    <div class="chart-section">
+      <div class="section-heading">Funding Over Time ($M)</div>
       <canvas id="funding-chart"></canvas>
     </div>
 
-    <div class="chart-container">
-      <h4>OCI score trend</h4>
+    <div class="chart-section">
+      <div class="section-heading">OCI Score Trend</div>
       <canvas id="oci-trend-chart"></canvas>
     </div>
 
-    <div class="decomp-section">
-      <h4>Funding allocation</h4>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <div style="flex:1;height:16px;border-radius:3px;overflow:hidden;display:flex;border:1px solid var(--border-light)">
-          <div style="width:${(1-d.gap)*100}%;background:var(--green);transition:width 0.5s"></div>
-          <div style="flex:1;background:var(--surface-inset)"></div>
-        </div>
+    <div class="funding-bar-section">
+      <div class="section-heading">Funding Allocation</div>
+      <div class="funding-bar__track">
+        <div class="funding-bar__funded" style="width:${(1-d.gap)*100}%"></div>
+        <div class="funding-bar__gap"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary)">
-        <span>Funded: <strong style="color:var(--green)">$${fmtM(d.fund)}</strong></span>
-        <span>Shortfall: <strong style="color:var(--hum-red)">$${fmtM(d.req - d.fund)}</strong></span>
+      <div class="funding-bar__labels">
+        <span>Funded: <strong>$${fmtM(d.fund)}</strong></span>
+        <span>Shortfall: <strong>$${fmtM(d.req - d.fund)}</strong></span>
       </div>
     </div>
 
-    <div class="formula-card">
-      <div class="formula-title">OCI Formula</div>
-      <code>
-        OCI = (PIN/Pop &times; Sev &times; Gap) &times; (1 + Media &times; 0.2)<br>
-        <span class="muted">&nbsp;&nbsp;&nbsp;=</span> (${d.pin_norm.toFixed(3)} &times; ${d.sev.toFixed(1)} &times; ${d.gap.toFixed(3)}) &times; (1 + ${d.media.toFixed(3)} &times; 0.2)<br>
-        <span class="muted">&nbsp;&nbsp;&nbsp;=</span> <span class="result" style="color:${valToColor(d.oci)}">${d.oci.toFixed(4)}</span> <span class="muted">(normalized)</span>
-      </code>
+    <div class="formula-section">
+      <div class="formula-heading">OCI Formula</div>
+      OCI = (PIN/Pop &times; Sev &times; Gap) &times; (1 + Media &times; 0.2)<br>
+      <span class="muted">&nbsp;&nbsp;&nbsp;=</span> (${d.pin_norm.toFixed(3)} &times; ${d.sev.toFixed(1)} &times; ${d.gap.toFixed(3)}) &times; (1 + ${d.media.toFixed(3)} &times; 0.2)<br>
+      <span class="muted">&nbsp;&nbsp;&nbsp;=</span> <span class="result">${d.oci.toFixed(4)}</span> <span class="muted">(normalized)</span>
     </div>
   `;
 
@@ -1179,16 +1199,16 @@ function renderFundingChart(iso) {
     data: {
       labels: history.map(d => d.year),
       datasets: [
-        { label: 'Funded', data: history.map(d => d.fund), backgroundColor: '#1A9E4A', borderRadius: 3 },
-        { label: 'Shortfall', data: history.map(d => d.req - d.fund), backgroundColor: '#E5E7EB', borderRadius: 3 }
+        { label: 'Funded', data: history.map(d => d.fund), backgroundColor: '#7fb92f', borderRadius: 2 },
+        { label: 'Shortfall', data: history.map(d => d.req - d.fund), backgroundColor: '#e8e8e8', borderRadius: 2 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#5C6B7F', font: { size: 11, family: "'Source Sans 3', sans-serif" }, usePointStyle: true, pointStyle: 'rectRounded', padding: 12 } } },
+      plugins: { legend: { labels: { color: '#666', font: { size: 11, family: "'Roboto', sans-serif" }, usePointStyle: true, pointStyle: 'rectRounded', padding: 12 } } },
       scales: {
-        x: { stacked: true, ticks: { color: '#8C96A6', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
-        y: { stacked: true, ticks: { color: '#8C96A6', font: { size: 11 }, callback: v => '$'+v+'M' }, grid: { color: '#F1F3F5' }, border: { display: false } }
+        x: { stacked: true, ticks: { color: '#999', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: { stacked: true, ticks: { color: '#999', font: { size: 11 }, callback: v => '$'+v+'M' }, grid: { color: '#f2f2f2' }, border: { display: false } }
       }
     }
   });
@@ -1207,15 +1227,15 @@ function renderOCITrendChart(iso) {
       datasets: [{
         label: 'OCI Score',
         data: history.map(d => d.oci),
-        borderColor: '#0072BC',
-        backgroundColor: 'rgba(0,114,188,0.08)',
+        borderColor: '#1f69b3',
+        backgroundColor: 'rgba(31,105,179,0.06)',
         fill: true,
         tension: 0.3,
-        pointBackgroundColor: '#0072BC',
+        pointBackgroundColor: '#1f69b3',
         pointBorderColor: '#FFFFFF',
         pointBorderWidth: 2,
-        pointRadius: 5,
-        pointHoverRadius: 7,
+        pointRadius: 4,
+        pointHoverRadius: 6,
         borderWidth: 2
       }]
     },
@@ -1223,8 +1243,8 @@ function renderOCITrendChart(iso) {
       responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { ticks: { color: '#8C96A6', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
-        y: { min: 0, max: 1.05, ticks: { color: '#8C96A6', font: { size: 11 } }, grid: { color: '#F1F3F5' }, border: { display: false } }
+        x: { ticks: { color: '#999', font: { size: 11 } }, grid: { display: false }, border: { display: false } },
+        y: { min: 0, max: 1.05, ticks: { color: '#999', font: { size: 11 } }, grid: { color: '#f2f2f2' }, border: { display: false } }
       }
     }
   });
@@ -1245,8 +1265,8 @@ function updateStats() {
     <div class="stat"><div class="stat-val">${data.length}</div><div class="stat-label">Crises tracked</div></div>
     <div class="stat"><div class="stat-val">${fmtK(totalPIN)}</div><div class="stat-label">People in need</div></div>
     <div class="stat"><div class="stat-val">${fmtPct(avgGap)}</div><div class="stat-label">Avg funding gap</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--green)">$${fmtM(totalFund)}</div><div class="stat-label">Total funded</div></div>
-    <div class="stat"><div class="stat-val" style="color:var(--hum-red)">$${fmtM(totalReq - totalFund)}</div><div class="stat-label">Total shortfall</div></div>
+    <div class="stat"><div class="stat-val">$${fmtM(totalFund)}</div><div class="stat-label">Total funded</div></div>
+    <div class="stat"><div class="stat-val">$${fmtM(totalReq - totalFund)}</div><div class="stat-label">Total shortfall</div></div>
     <div class="stat"><div class="stat-val">${highNeglect}</div><div class="stat-label">Low visibility</div></div>
   `;
 }
@@ -1254,9 +1274,9 @@ function updateStats() {
 // ═══════════════════════════════════════════════════════════════
 // EVENT HANDLERS
 // ═══════════════════════════════════════════════════════════════
-document.querySelectorAll('.ctrl-btn[data-year]').forEach(btn => {
+document.querySelectorAll('.btn[data-year]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.ctrl-btn[data-year]').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.btn[data-year]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     selectedYear = parseInt(btn.dataset.year);
     selectedCountry = null;
