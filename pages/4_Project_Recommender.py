@@ -5,9 +5,10 @@ Comparable benchmark project search using cosine similarity.
 Tries Actian VectorAI first, falls back to sklearn.
 """
 
-import streamlit as st
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import streamlit as st
 
 
 # --- Data loading ---

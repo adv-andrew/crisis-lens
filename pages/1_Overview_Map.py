@@ -5,10 +5,11 @@ OCI choropleth world map with country click drill-down.
 Primary entry point for the visual experience.
 """
 
-import streamlit as st
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
-from pathlib import Path
+import streamlit as st
 
 
 # --- Data loading ---

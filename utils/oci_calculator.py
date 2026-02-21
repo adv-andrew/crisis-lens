@@ -13,8 +13,8 @@ Formula (DO NOT MODIFY without being explicitly asked):
 OCI is normalized 0-1 across all crises. Higher = more overlooked.
 """
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def compute_oci_scores(
@@ -66,13 +66,13 @@ def compute_oci_scores(
     # ----- OCI component: funding_gap -----
     # Already computed in data_loader; fill missing with 0.5 (unknown)
     df["has_funding_data"] = df["funding_gap"].notna()
-    df["funding_gap"] = df["funding_gap"].fillna(0.5)
+    df["funding_gap"] = pd.to_numeric(df["funding_gap"], errors="coerce").fillna(0.5)
 
     # ----- OCI raw score -----
     df["oci_raw"] = df["pin_normalized"] * df["severity_weight"] * df["funding_gap"]
 
     # Countries with no population data get NaN pin_normalized -> oci_raw = 0
-    df["oci_raw"] = df["oci_raw"].fillna(0)
+    df["oci_raw"] = pd.to_numeric(df["oci_raw"], errors="coerce").fillna(0)
 
     # ----- Normalize OCI to [0, 1] -----
     oci_min = df["oci_raw"].min()

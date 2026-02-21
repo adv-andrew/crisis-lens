@@ -6,10 +6,11 @@ never read CSVs directly. Raw downloads cached in data/raw/, processed
 outputs in data/processed/.
 """
 
-from pathlib import Path
 import json
-import pandas as pd
+from pathlib import Path
+
 import numpy as np
+import pandas as pd
 import requests
 
 RAW_DIR = Path("data/raw")

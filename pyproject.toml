@@ -1,0 +1,15 @@
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"pages/*.py" = ["F811"]
+"tests/*.py" = ["E712"]
+"notebooks/*.ipynb" = ["E701"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

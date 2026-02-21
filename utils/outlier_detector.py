@@ -5,9 +5,8 @@ Z-score analysis on beneficiary-to-budget ratios within each cluster.
 Flags high-efficiency benchmarks and low-efficiency outliers.
 """
 
-import pandas as pd
 import numpy as np
-from scipy.stats import zscore
+import pandas as pd
 
 MIN_CLUSTER_SIZE = 3  # minimum projects to compute meaningful z-score
 OUTLIER_THRESHOLD = 2.0  # z-score threshold (not 3.0 — small cluster sizes)

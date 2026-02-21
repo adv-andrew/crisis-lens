@@ -5,9 +5,10 @@ Streamlit entry point. Sets page config (the ONLY place this is called),
 initializes session state, and renders the home/landing view.
 """
 
-import streamlit as st
-import pandas as pd
 from pathlib import Path
+
+import pandas as pd
+import streamlit as st
 
 st.set_page_config(
     page_title="CrisisLens — Overlooked Crisis Index",

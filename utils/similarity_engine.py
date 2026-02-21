@@ -6,11 +6,11 @@ Given an underfunded or low-efficiency project, surfaces comparable
 high-efficiency benchmark projects from other contexts.
 """
 
-import pandas as pd
 import numpy as np
-from sklearn.preprocessing import OneHotEncoder, MinMaxScaler
-from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
 import scipy.sparse as sp
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 
 def build_feature_matrix(df_projects: pd.DataFrame):

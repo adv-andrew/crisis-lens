@@ -7,3 +7,5 @@ __pycache__/
 dist/
 build/
 .streamlit/secrets.toml
+.pytest_cache/
+.ruff_cache/

@@ -4,12 +4,11 @@ CrisisLens — Crisis Drilldown
 Per-country cluster-level funding mismatch analysis.
 """
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
+
+import pandas as pd
+import plotly.express as px
+import streamlit as st
 
 
 # --- Data loading ---

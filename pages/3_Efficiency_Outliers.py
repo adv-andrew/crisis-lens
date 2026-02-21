@@ -5,10 +5,11 @@ Project-level beneficiary-to-budget analysis.
 Flags high-efficiency benchmarks and low-efficiency outliers.
 """
 
-import streamlit as st
+from pathlib import Path
+
 import pandas as pd
 import plotly.express as px
-from pathlib import Path
+import streamlit as st
 
 
 # --- Data loading ---

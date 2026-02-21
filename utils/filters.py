@@ -4,8 +4,8 @@ CrisisLens Shared Sidebar Filters
 Consistent filter widgets used across all Streamlit pages.
 """
 
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
 
 def render_year_filter(df: pd.DataFrame, default_latest: bool = True) -> list:
@@ -36,9 +36,11 @@ def render_country_filter(df: pd.DataFrame, label: str = "Country") -> str | Non
             .set_index("country_iso3")["country_name"]
             .to_dict()
         )
-        format_func = lambda iso3: f"{name_map.get(iso3, iso3)} ({iso3})"
+        def format_func(iso3):
+            return f"{name_map.get(iso3, iso3)} ({iso3})"
     else:
-        format_func = lambda iso3: iso3
+        def format_func(iso3):
+            return iso3
 
     selected = st.sidebar.selectbox(label, all_iso3, index=idx, format_func=format_func)
     st.session_state["selected_iso3"] = selected

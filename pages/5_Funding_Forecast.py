@@ -5,12 +5,12 @@ Identifies crises trending toward deeper underfunding using
 linear regression on historical funding coverage.
 """
 
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
 
 
 # --- Data loading ---
