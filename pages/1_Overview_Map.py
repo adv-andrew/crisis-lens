@@ -54,102 +54,236 @@ if "media_score" in df_oci.columns:
     map_layers.append("Media Neglect")
 map_mode = st.sidebar.radio("Map Layer", map_layers, index=0)
 
-# --- Filter and deduplicate ---
-if selected_years:
-    df_filtered = df_oci[df_oci["year"].isin(selected_years)].copy()
-else:
-    df_filtered = df_oci.copy()
-
-# For multi-year selection, keep latest year per country
-df_filtered = (
-    df_filtered.sort_values("year", ascending=False)
-    .drop_duplicates("country_iso3")
-    .copy()
+st.sidebar.markdown("---")
+animate_timeline = st.sidebar.checkbox(
+    "Animate Timeline (2024-2026)",
+    value=False,
+    help="Play an animated choropleth showing how OCI scores evolve year over year.",
 )
 
-# Ensure hover name column exists
-df_filtered["display_name"] = df_filtered["country_name"].fillna(df_filtered["country_iso3"])
+# --- Prepare color settings ---
+def _get_color_settings(map_mode, df):
+    if map_mode == "OCI Score":
+        return "oci_score", [[0, "#7fb92f"], [0.35, "#ff7a00"], [0.65, "#cd3a1f"], [1, "#8e0000"]], "OCI Score", (0, 1)
+    elif map_mode == "Funding Gap %":
+        return "funding_gap", [[0, "#7fb92f"], [0.5, "#ff7a00"], [1, "#cd3a1f"]], "Funding Gap", (0, 1)
+    elif map_mode == "People in Need (M)":
+        df["people_in_need_m"] = df["people_in_need_k"] / 1000
+        return "people_in_need_m", [[0, "#82b5e9"], [1, "#002856"]], "People in Need (M)", None
+    else:  # Media Neglect
+        return "media_score", [[0, "#7fb92f"], [0.5, "#ff7a00"], [1, "#8e0000"]], "Media Neglect Score", (0, 1)
+
 
 # --- Build choropleth ---
 st.header("Overlooked Crisis Index — World Map")
 
-# Prepare color column based on mode
-if map_mode == "OCI Score":
-    color_col = "oci_score"
-    color_scale = [[0, "#2ecc71"], [0.35, "#f39c12"], [0.65, "#e74c3c"], [1, "#8e0000"]]
-    color_label = "OCI Score"
-    range_color = (0, 1)
-elif map_mode == "Funding Gap %":
-    color_col = "funding_gap"
-    color_scale = "OrRd"
-    color_label = "Funding Gap"
-    range_color = (0, 1)
-elif map_mode == "People in Need (M)":
-    df_filtered["people_in_need_m"] = df_filtered["people_in_need_k"] / 1000
-    color_col = "people_in_need_m"
-    color_scale = "Blues"
-    color_label = "People in Need (M)"
-    range_color = None
-else:  # Media Neglect
-    color_col = "media_score"
-    color_scale = [[0, "#2ecc71"], [0.5, "#f39c12"], [1, "#8e0000"]]
-    color_label = "Media Neglect Score"
-    range_color = (0, 1)
+if animate_timeline:
+    # --- ANIMATED TIMELINE MODE ---
+    # Generate interpolated frames between years for smooth transitions.
+    # Instead of 3 choppy frames, we create ~15 frames that blend values.
+    import numpy as np
 
-fig = px.choropleth(
-    df_filtered,
-    locations="country_iso3",
-    locationmode="ISO-3",
-    color=color_col,
-    color_continuous_scale=color_scale,
-    range_color=range_color,
-    hover_name="display_name",
-    hover_data={
-        "country_iso3": True,
-        "oci_score": ":.3f",
-        "funding_gap": ":.1%",
-        "people_in_need_k": ":,.0f",
-        "media_score": ":.2f" if "media_score" in df_filtered.columns else False,
-        "display_name": False,
-    },
-    labels={
-        color_col: color_label,
-        "oci_score": "OCI Score",
-        "funding_gap": "Funding Gap",
-        "people_in_need_k": "People in Need (k)",
-        "media_score": "Media Neglect",
-        "country_iso3": "ISO3",
-    },
-)
+    df_base = df_oci.copy()
+    df_base["display_name"] = df_base["country_name"].fillna(df_base["country_iso3"])
+    df_base["year"] = df_base["year"].astype(int)
 
-fig.update_layout(
-    margin=dict(l=0, r=0, t=10, b=0),
-    height=550,
-    geo=dict(
-        showframe=False,
-        showcoastlines=True,
-        coastlinecolor="rgba(150,150,150,0.5)",
-        projection_type="natural earth",
-        bgcolor="rgba(0,0,0,0)",
-    ),
-    coloraxis_colorbar=dict(
-        title=color_label,
-        thickness=15,
-        len=0.6,
-    ),
-)
+    years_sorted = sorted(df_base["year"].unique())
+    all_countries = df_base["country_iso3"].unique()
+    n_interp = 5  # intermediate frames between each real year
 
-# --- Render map with click events ---
-event = st.plotly_chart(
-    fig,
-    use_container_width=True,
-    key="oci_map",
-    on_select="rerun",
-    selection_mode="points",
-)
+    interpolated_frames = []
+    for i in range(len(years_sorted)):
+        y = years_sorted[i]
+        df_y = df_base[df_base["year"] == y].set_index("country_iso3")
 
-# Handle map click
-if event and event.selection and event.selection.points:
+        # Add the real year frame
+        frame = df_y.copy()
+        frame["frame_label"] = str(y)
+        interpolated_frames.append(frame.reset_index())
+
+        # Interpolate toward the next year
+        if i < len(years_sorted) - 1:
+            y_next = years_sorted[i + 1]
+            df_next = df_base[df_base["year"] == y_next].set_index("country_iso3")
+
+            # Only interpolate countries present in both years
+            shared = df_y.index.intersection(df_next.index)
+
+            for step in range(1, n_interp + 1):
+                t = step / (n_interp + 1)  # 0 < t < 1
+                interp = df_y.loc[shared].copy()
+                for col in ["oci_score", "funding_gap", "people_in_need_k", "media_score",
+                            "pin_normalized", "requirements_usd_m", "funding_usd_m"]:
+                    if col in interp.columns and col in df_next.columns:
+                        interp[col] = (
+                            df_y.loc[shared, col].values * (1 - t)
+                            + df_next.loc[shared, col].values * t
+                        )
+                interp["frame_label"] = f"{y}+{step}"
+                interpolated_frames.append(interp.reset_index())
+
+    df_anim = pd.concat(interpolated_frames, ignore_index=True)
+    df_anim["display_name"] = df_anim["country_name"].fillna(df_anim["country_iso3"])
+
+    color_col, color_scale, color_label, range_color = _get_color_settings(map_mode, df_anim)
+
+    fig = px.choropleth(
+        df_anim,
+        locations="country_iso3",
+        locationmode="ISO-3",
+        color=color_col,
+        color_continuous_scale=color_scale,
+        range_color=range_color,
+        hover_name="display_name",
+        hover_data={
+            "country_iso3": True,
+            "oci_score": ":.3f",
+            "funding_gap": ":.1%",
+            "people_in_need_k": ":,.0f",
+            "display_name": False,
+        },
+        labels={
+            color_col: color_label,
+            "oci_score": "OCI Score",
+            "funding_gap": "Funding Gap",
+            "people_in_need_k": "People in Need (k)",
+            "country_iso3": "ISO3",
+        },
+        animation_frame="frame_label",
+    )
+
+    # Only show real years on the slider, not intermediate steps
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=40, b=0),
+        height=600,
+        geo=dict(
+            showframe=False,
+            showcoastlines=True,
+            coastlinecolor="rgba(150,150,150,0.5)",
+            projection_type="natural earth",
+            bgcolor="rgba(0,0,0,0)",
+        ),
+        coloraxis_colorbar=dict(
+            title=color_label,
+            thickness=15,
+            len=0.6,
+        ),
+        sliders=[dict(
+            currentvalue=dict(
+                prefix="",
+                font=dict(size=14, family="Roboto Condensed, sans-serif", color="#4a4a4a"),
+            ),
+            pad=dict(t=30),
+        )],
+        updatemenus=[dict(
+            type="buttons",
+            showactive=False,
+            y=0,
+            x=0.05,
+            xanchor="right",
+            buttons=[
+                dict(label="Play", method="animate",
+                     args=[None, {"frame": {"duration": 400, "redraw": True},
+                                  "fromcurrent": True,
+                                  "transition": {"duration": 350, "easing": "cubic-in-out"}}]),
+                dict(label="Pause", method="animate",
+                     args=[[None], {"frame": {"duration": 0, "redraw": False},
+                                    "mode": "immediate",
+                                    "transition": {"duration": 0}}]),
+            ],
+        )],
+    )
+
+    st.plotly_chart(fig, use_container_width=True, key="oci_map_animated")
+
+    st.caption(
+        "Press **Play** to animate OCI scores across 2024-2026. "
+        "Watch how crises evolve — countries appearing in deeper red are becoming more overlooked over time."
+    )
+
+    # In animated mode, use latest year for the detail panel and rankings
+    df_filtered = (
+        df_oci.sort_values("year", ascending=False)
+        .drop_duplicates("country_iso3")
+        .copy()
+    )
+    df_filtered["display_name"] = df_filtered["country_name"].fillna(df_filtered["country_iso3"])
+
+    # Skip click-selection in animated mode
+    event = None
+
+else:
+    # --- STATIC MODE (original behavior) ---
+    if selected_years:
+        df_filtered = df_oci[df_oci["year"].isin(selected_years)].copy()
+    else:
+        df_filtered = df_oci.copy()
+
+    # For multi-year selection, keep latest year per country
+    df_filtered = (
+        df_filtered.sort_values("year", ascending=False)
+        .drop_duplicates("country_iso3")
+        .copy()
+    )
+
+    df_filtered["display_name"] = df_filtered["country_name"].fillna(df_filtered["country_iso3"])
+
+    color_col, color_scale, color_label, range_color = _get_color_settings(map_mode, df_filtered)
+
+    fig = px.choropleth(
+        df_filtered,
+        locations="country_iso3",
+        locationmode="ISO-3",
+        color=color_col,
+        color_continuous_scale=color_scale,
+        range_color=range_color,
+        hover_name="display_name",
+        hover_data={
+            "country_iso3": True,
+            "oci_score": ":.3f",
+            "funding_gap": ":.1%",
+            "people_in_need_k": ":,.0f",
+            "media_score": ":.2f" if "media_score" in df_filtered.columns else False,
+            "display_name": False,
+        },
+        labels={
+            color_col: color_label,
+            "oci_score": "OCI Score",
+            "funding_gap": "Funding Gap",
+            "people_in_need_k": "People in Need (k)",
+            "media_score": "Media Neglect",
+            "country_iso3": "ISO3",
+        },
+    )
+
+    fig.update_layout(
+        margin=dict(l=0, r=0, t=10, b=0),
+        height=550,
+        geo=dict(
+            showframe=False,
+            showcoastlines=True,
+            coastlinecolor="rgba(150,150,150,0.5)",
+            projection_type="natural earth",
+            bgcolor="rgba(0,0,0,0)",
+        ),
+        coloraxis_colorbar=dict(
+            title=color_label,
+            thickness=15,
+            len=0.6,
+        ),
+    )
+
+    # --- Render map with click events ---
+    event = st.plotly_chart(
+        fig,
+        use_container_width=True,
+        key="oci_map",
+        on_select="rerun",
+        selection_mode="points",
+    )
+
+# Handle map click (static mode only)
+if event is not None and event and event.selection and event.selection.points:
     point = event.selection.points[0]
     iso3 = point.get("location")
     if iso3:
