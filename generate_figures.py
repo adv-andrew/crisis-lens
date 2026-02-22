@@ -15,6 +15,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import seaborn as sns
 from scipy import stats
 
 # ---------------------------------------------------------------------------
@@ -63,16 +64,19 @@ DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
 RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
 FIG_DIR = os.path.join(BASE_DIR, "figures")
 PAPER_FIG_DIR = os.path.join(BASE_DIR, "..", "paper", "figures")
+TEMP_DIR = os.path.join(BASE_DIR, "..", "temp")
 
 os.makedirs(FIG_DIR, exist_ok=True)
 os.makedirs(PAPER_FIG_DIR, exist_ok=True)
+os.makedirs(TEMP_DIR, exist_ok=True)
 
 
 def save_fig(fig, name):
-    """save to both figures/ and paper/figures/ as PDF and PNG."""
+    """save to figures/, paper/figures/, and temp/ as PDF and PNG."""
     for d in [FIG_DIR, PAPER_FIG_DIR]:
         fig.savefig(os.path.join(d, f"{name}.pdf"), format="pdf")
-    fig.savefig(os.path.join(FIG_DIR, f"{name}.png"), format="png", dpi=300)
+    for d in [FIG_DIR, TEMP_DIR]:
+        fig.savefig(os.path.join(d, f"{name}.png"), format="png", dpi=300)
     print(f"  saved {name}.pdf + .png")
 
 
@@ -95,100 +99,104 @@ print(f"loaded: {len(df_oci)} OCI rows, {len(df_projects)} projects, "
 def fig_oci_map():
     print("\ngenerating: oci_map")
     try:
-        import matplotlib.patches as mpatches
-        # we need a world shapefile — try cartopy first, fallback to simple scatter
-        try:
-            import cartopy.crs as ccrs
-            import cartopy.feature as cfeature
-            HAS_CARTOPY = True
-        except ImportError:
-            HAS_CARTOPY = False
+        import cartopy.crs as ccrs
+        import cartopy.feature as cfeature
+        import cartopy.io.shapereader as shpreader
+        from matplotlib.colors import LinearSegmentedColormap
 
         df = df_oci.sort_values("year", ascending=False).drop_duplicates("country_iso3")
+        oci_by_iso3 = dict(zip(df["country_iso3"], df["oci_score"]))
 
-        if HAS_CARTOPY:
-            fig, ax = plt.subplots(
-                figsize=(7, 3.8),
-                subplot_kw={"projection": ccrs.Robinson()},
-            )
-            ax.set_global()
-            ax.add_feature(cfeature.LAND, facecolor="#f0f0f0", edgecolor="none")
-            ax.add_feature(cfeature.BORDERS, linewidth=0.3, edgecolor="#cccccc")
-            ax.add_feature(cfeature.OCEAN, facecolor="white")
-            try:
-                ax.outline_patch.set_visible(False)
-            except AttributeError:
-                ax.spines["geo"].set_visible(False)
+        # single-hue blue colormap
+        oci_cmap = LinearSegmentedColormap.from_list(
+            "oci_blue", ["#DEEBF7", "#6BAED6", "#08519C"], N=256
+        )
 
-            # country centroids (approximate)
-            centroids = {
-                "SSD": (30.2, 6.8), "SYR": (38.9, 35.0), "YEM": (48.0, 15.5),
-                "SDN": (30.2, 15.5), "HTI": (-72.3, 19.0), "AFG": (67.7, 33.9),
-                "ETH": (40.5, 9.0), "COD": (21.8, -4.0), "NGA": (8.7, 9.1),
-                "SOM": (46.2, 5.2), "MMR": (96.0, 21.9), "UKR": (31.2, 48.4),
-                "TCD": (18.7, 15.5), "MLI": (-1.9, 17.6), "BFA": (-1.6, 12.3),
-                "CMR": (12.4, 7.4), "CAF": (20.9, 6.6), "NER": (8.1, 17.6),
-                "MOZ": (35.5, -18.7), "COL": (-74.3, 4.6), "VEN": (-66.6, 6.4),
-                "HND": (-86.2, 15.2), "GTM": (-90.2, 15.8), "SLV": (-88.9, 13.8),
-                "PSE": (35.2, 31.9), "LBN": (35.9, 33.9), "IRQ": (44.0, 33.2),
-                "LBY": (17.2, 26.3),
-            }
+        fig, ax = plt.subplots(
+            figsize=(7, 3.8),
+            subplot_kw={"projection": ccrs.Robinson()},
+        )
+        ax.set_global()
 
-            from matplotlib.colors import LinearSegmentedColormap
-            oci_cmap = LinearSegmentedColormap.from_list(
-                "oci", ["#2ecc71", "#f39c12", "#e74c3c", "#8e0000"], N=256
-            )
+        # white ocean
+        ax.add_feature(cfeature.OCEAN, facecolor="white", zorder=0)
 
-            for _, row in df.iterrows():
-                iso3 = row["country_iso3"]
-                if iso3 in centroids:
-                    lon, lat = centroids[iso3]
-                    color = oci_cmap(row["oci_score"])
-                    size = max(40, row["oci_score"] * 200)
-                    ax.scatter(
-                        lon, lat, c=[color], s=size, edgecolors="black",
-                        linewidths=0.3, transform=ccrs.PlateCarree(), zorder=5,
-                    )
+        # light gray base land
+        ax.add_feature(cfeature.LAND, facecolor="#ECECEC", edgecolor="none", zorder=1)
 
-            sm = plt.cm.ScalarMappable(
-                cmap=oci_cmap, norm=plt.Normalize(0, 1)
-            )
-            sm.set_array([])
-            cbar = plt.colorbar(sm, ax=ax, shrink=0.6, pad=0.02, aspect=20)
-            cbar.set_label("OCI Score", fontsize=9)
-            cbar.ax.tick_params(labelsize=8)
+        # faint country borders
+        ax.add_feature(cfeature.BORDERS, linewidth=0.2, edgecolor="#CCCCCC", zorder=2)
 
-            fig.subplots_adjust(left=0.02, right=0.92, top=0.98, bottom=0.02)
-        else:
-            # fallback: simple bar chart of OCI scores (no map library)
-            df_sorted = df.nlargest(15, "oci_score").sort_values("oci_score")
-            from matplotlib.colors import LinearSegmentedColormap
-            oci_cmap = LinearSegmentedColormap.from_list(
-                "oci", ["#2ecc71", "#f39c12", "#e74c3c", "#8e0000"], N=256
-            )
-            colors = [oci_cmap(s) for s in df_sorted["oci_score"]]
+        # remove globe outline
+        try:
+            ax.outline_patch.set_visible(False)
+        except AttributeError:
+            ax.spines["geo"].set_visible(False)
 
-            fig, ax = plt.subplots(figsize=(6, 4.5))
-            ax.barh(
-                df_sorted["country_name"], df_sorted["oci_score"],
-                color=colors, edgecolor="black", linewidth=0.3,
-            )
-            ax.set_xlabel("OCI Score")
-            ax.set_xlim(0, 1.05)
-            for i, (_, row) in enumerate(df_sorted.iterrows()):
-                ax.text(
-                    row["oci_score"] + 0.02, i, f"{row['oci_score']:.3f}",
-                    va="center", fontsize=8,
+        # fill scored countries with OCI color
+        shapefile = shpreader.natural_earth(
+            resolution="110m", category="cultural", name="admin_0_countries"
+        )
+        reader = shpreader.Reader(shapefile)
+
+        for record in reader.records():
+            iso3 = record.attributes["ADM0_A3"]
+            if iso3 in oci_by_iso3:
+                score = oci_by_iso3[iso3]
+                color = oci_cmap(score)
+                ax.add_geometries(
+                    [record.geometry], ccrs.PlateCarree(),
+                    facecolor=color, edgecolor="#444444",
+                    linewidth=0.4, zorder=3,
                 )
+
+        # colorbar
+        sm = plt.cm.ScalarMappable(cmap=oci_cmap, norm=plt.Normalize(0, 1))
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, shrink=0.55, pad=0.02, aspect=22)
+        cbar.set_label("OCI Score", fontsize=9)
+        cbar.ax.tick_params(labelsize=8)
+        cbar.outline.set_linewidth(0.4)
+
+        fig.subplots_adjust(left=0.02, right=0.92, top=0.98, bottom=0.02)
+
+        save_fig(fig, "oci_map")
+        plt.close(fig)
+    except ImportError:
+        # fallback: bar chart if cartopy not available
+        print("  cartopy not available, generating bar chart fallback")
+        df = df_oci.sort_values("year", ascending=False).drop_duplicates("country_iso3")
+        df_sorted = df.nlargest(15, "oci_score").sort_values("oci_score")
+
+        from matplotlib.colors import LinearSegmentedColormap
+        oci_cmap = LinearSegmentedColormap.from_list(
+            "oci_blue", ["#DEEBF7", "#6BAED6", "#08519C"], N=256
+        )
+        colors = [oci_cmap(s) for s in df_sorted["oci_score"]]
+
+        fig, ax = plt.subplots(figsize=(6, 4.5))
+        ax.barh(
+            df_sorted["country_name"], df_sorted["oci_score"],
+            color=colors, edgecolor="white", linewidth=0.3,
+        )
+        ax.set_xlabel("OCI Score")
+        ax.set_xlim(0, 1.05)
+        for i, (_, row) in enumerate(df_sorted.iterrows()):
+            ax.text(
+                row["oci_score"] + 0.02, i, f"{row['oci_score']:.3f}",
+                va="center", fontsize=8,
+            )
+        sns.despine(ax=ax, top=True, right=True)
 
         save_fig(fig, "oci_map")
         plt.close(fig)
     except Exception as e:
         print(f"  warning: oci_map generation failed: {e}")
-        # create a minimal placeholder
+        import traceback
+        traceback.print_exc()
         fig, ax = plt.subplots(figsize=(6, 4))
-        ax.text(0.5, 0.5, "OCI Map (requires cartopy)", ha="center", va="center",
-                transform=ax.transAxes, fontsize=12)
+        ax.text(0.5, 0.5, f"OCI Map failed: {e}", ha="center", va="center",
+                transform=ax.transAxes, fontsize=10)
         ax.set_axis_off()
         save_fig(fig, "oci_map")
         plt.close(fig)
@@ -231,14 +239,14 @@ def fig_cluster_gap():
 
     ssd = ssd.sort_values("gap", ascending=False)
 
-    # smooth light red gradient: light blush -> warm rose
+    # blue gradient matching OCI map and forecast trend
     from matplotlib.colors import LinearSegmentedColormap
     gap_cmap = LinearSegmentedColormap.from_list(
-        "gap", ["#f9d6d2", "#e8998d", "#d66b6b", "#c43e3e"], N=256
+        "gap", ["#DEEBF7", "#9ECAE1", "#4292C6", "#08519C"], N=256
     )
     colors = [gap_cmap(g) for g in ssd["gap"]]
 
-    fig, ax = plt.subplots(figsize=(6, 4.0))
+    fig, ax = plt.subplots(figsize=(6, 2.6))
     x_pos = np.arange(len(ssd))
     bars = ax.bar(
         x_pos, ssd["gap"].values,
@@ -256,7 +264,6 @@ def fig_cluster_gap():
     ax.set_xticks(x_pos)
     ax.set_xticklabels(ssd["label"].values, rotation=40, ha="right", fontsize=8)
 
-    ax.set_title("Funding Gap", fontsize=11, pad=10)
     ax.set_ylim(0, 1.12)
     ax.set_yticks([])
     ax.grid(visible=False)
@@ -304,44 +311,28 @@ def fig_outlier_scatter():
             df.loc[vi[z > 2.0], flag_col] = "high_efficiency"
             df.loc[vi[z < -2.0], flag_col] = "low_efficiency"
 
-    color_map = {
-        "high_efficiency": COLORS["green"],
-        "normal": "#bfbfbf",
-        "low_efficiency": COLORS["red"],
-        "insufficient_data": "#e0e0e0",
-    }
-    label_map = {
-        "high_efficiency": "High Efficiency",
-        "normal": "Normal",
-        "low_efficiency": "Low Efficiency",
-        "insufficient_data": "Insufficient Data",
-    }
-    zorder_map = {
-        "high_efficiency": 4,
-        "low_efficiency": 3,
-        "normal": 1,
-        "insufficient_data": 0,
-    }
+    # merge insufficient_data into normal for cleaner plot
+    df.loc[df[flag_col] == "insufficient_data", flag_col] = "normal"
 
     fig, ax = plt.subplots(figsize=(6, 4.5))
 
-    # plot each category separately for legend
-    for flag_val in ["insufficient_data", "normal", "low_efficiency", "high_efficiency"]:
-        subset = df[df[flag_col] == flag_val]
-        if subset.empty:
-            continue
-        ax.scatter(
-            subset["budget_usd"], subset["beneficiaries_total"],
-            c=color_map.get(flag_val, "#bfbfbf"),
-            s=15 if flag_val in ("normal", "insufficient_data") else 25,
-            alpha=0.5 if flag_val in ("normal", "insufficient_data") else 0.8,
-            edgecolors="black" if flag_val == "high_efficiency" else "none",
-            linewidths=0.3,
-            label=label_map.get(flag_val, flag_val),
-            zorder=zorder_map.get(flag_val, 1),
-        )
+    # normal projects: light blue
+    normal = df[df[flag_col] == "normal"]
+    ax.scatter(
+        normal["budget_usd"], normal["beneficiaries_total"],
+        c="#B0CEE3", s=12, alpha=0.6, edgecolors="none",
+        label="Projects", zorder=1,
+    )
 
-    # reference line: median efficiency (beneficiaries = efficiency * budget)
+    # high-efficiency benchmarks: dark navy
+    benchmarks = df[df[flag_col] == "high_efficiency"]
+    ax.scatter(
+        benchmarks["budget_usd"], benchmarks["beneficiaries_total"],
+        c="#08519C", s=28, alpha=0.85, edgecolors="white",
+        linewidths=0.4, label="High Efficiency", zorder=4,
+    )
+
+    # reference line: median efficiency
     valid_eff = df[df["efficiency_ratio"].notna() & (df["efficiency_ratio"] > 0)]
     if not valid_eff.empty:
         median_eff = valid_eff["efficiency_ratio"].median()
@@ -352,8 +343,8 @@ def fig_outlier_scatter():
         )
         ax.plot(
             x_range, median_eff * x_range, "--",
-            color=COLORS["gray"], linewidth=1.0, alpha=0.6,
-            label=f"Median efficiency ({median_eff:.3f} ben/USD)",
+            color="#444444", linewidth=1.0, alpha=0.5,
+            label=f"Median ({median_eff:.3f} ben/USD)",
             zorder=2,
         )
 
@@ -361,8 +352,14 @@ def fig_outlier_scatter():
     ax.set_yscale("log")
     ax.set_xlabel("Budget (USD, log scale)")
     ax.set_ylabel("Beneficiaries (log scale)")
-    ax.legend(loc="upper left", fontsize=8, framealpha=0.9)
-    ax.grid(True, alpha=0.2, which="both")
+    ax.legend(loc="upper left", fontsize=8, framealpha=0.9, edgecolor="#cccccc")
+    ax.grid(True, alpha=0.15, which="major", linewidth=0.5, color="#888888")
+    ax.grid(True, alpha=0.08, which="minor", linewidth=0.3, color="#aaaaaa")
+    sns.despine(ax=ax, top=True, right=True)
+    ax.spines["left"].set_linewidth(0.6)
+    ax.spines["bottom"].set_linewidth(0.6)
+    ax.spines["left"].set_color("#444444")
+    ax.spines["bottom"].set_color("#444444")
 
     fig.tight_layout()
     save_fig(fig, "outlier_scatter")
@@ -370,7 +367,7 @@ def fig_outlier_scatter():
 
 
 # ===========================================================================
-# figure 5: funding-gap trend with 2027 projection (South Sudan)
+# figure 5: funding-gap history (South Sudan)
 # uses full funding history from funding_clean.csv (not just OCI years)
 # ===========================================================================
 df_funding = pd.read_csv(os.path.join(DATA_DIR, "funding_clean.csv"))
@@ -381,70 +378,161 @@ def fig_forecast_trend():
     ssd = df_funding[df_funding["country_iso3"] == "SSD"].sort_values("year")
     ssd = ssd.dropna(subset=["funding_gap", "year"])
 
-    x = ssd["year"].values.astype(float)
+    x = ssd["year"].values.astype(int)
     y = ssd["funding_gap"].values.astype(float)
 
     if len(x) < 3:
         print("  skipping: not enough data points for SSD")
         return
 
-    result = stats.linregress(x, y)
-    proj_2027 = float(np.clip(result.slope * 2027 + result.intercept, 0, 1))
+    with sns.axes_style("white"):
+        fig, ax = plt.subplots(figsize=(5.5, 2.8))
 
-    # prediction interval
-    n = len(x)
-    x_mean = x.mean()
-    ss_x = np.sum((x - x_mean) ** 2)
-    y_pred = result.slope * x + result.intercept
-    s_e = np.sqrt(np.sum((y - y_pred) ** 2) / (n - 2))
-    t_crit = stats.t.ppf(0.95, df=n - 2)
+        # soft fill under the curve
+        ax.fill_between(
+            x, y, alpha=0.08, color=COLORS["blue"], linewidth=0,
+        )
 
-    # continuous trend and CI band
-    x_cont = np.linspace(x.min(), 2027, 200)
-    y_trend = result.slope * x_cont + result.intercept
+        # main line
+        ax.plot(
+            x, y, "-", color=COLORS["blue"], linewidth=2.0, zorder=4,
+        )
 
-    se_band = s_e * np.sqrt(1 + 1 / n + (x_cont - x_mean) ** 2 / ss_x)
-    y_upper = y_trend + t_crit * se_band
-    y_lower = y_trend - t_crit * se_band
+        # dot markers
+        ax.scatter(
+            x, y, s=28, color=COLORS["blue"], edgecolors="white",
+            linewidths=1.0, zorder=5,
+        )
 
-    fig, ax = plt.subplots(figsize=(5.5, 3.8))
+        ax.set_xlabel("Year", fontsize=10)
+        ax.set_ylabel("Funding Gap", fontsize=10)
+        ax.set_ylim(0, 1.05)
+        ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
+        ax.yaxis.set_major_locator(mticker.MultipleLocator(0.2))
 
-    # confidence band (soft, no hard edges)
-    ax.fill_between(
-        x_cont, y_lower, y_upper,
-        alpha=0.12, color=COLORS["red"], linewidth=0,
-        label="90% prediction interval",
-    )
+        # clean grid: horizontal only, very light
+        ax.grid(axis="y", alpha=0.15, linewidth=0.6, color="#888888")
+        ax.grid(axis="x", visible=False)
 
-    # historical data
-    ax.plot(
-        x, y, "o-", color=COLORS["blue"], markersize=5,
-        linewidth=1.5, label=f"Historical (n={n})", zorder=5,
-    )
+        # spines: only bottom and left, thin
+        sns.despine(ax=ax, top=True, right=True)
+        ax.spines["left"].set_linewidth(0.6)
+        ax.spines["bottom"].set_linewidth(0.6)
+        ax.spines["left"].set_color("#444444")
+        ax.spines["bottom"].set_color("#444444")
 
-    # trend line
-    ax.plot(
-        x_cont, y_trend, "--",
-        color=COLORS["red"], linewidth=1.2, alpha=0.7,
-        label=f"Linear trend ({result.slope:.3f}/yr)",
-    )
+        ax.tick_params(colors="#444444", labelsize=9)
 
-    # projected point
-    ax.plot(
-        2027, proj_2027, "*", color=COLORS["red"], markersize=14,
-        markeredgecolor="black", markeredgewidth=0.5,
-        label="Projected", zorder=6,
-    )
-
-    ax.set_xlabel("Year")
-    ax.set_ylabel("Funding Gap")
-    ax.set_ylim(-0.02, 1.15)
-    ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
-    ax.legend(loc="upper left", fontsize=8)
-    ax.grid(True, alpha=0.2)
+        # integer year ticks, every 3 years
+        ax.xaxis.set_major_locator(mticker.MultipleLocator(3))
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{int(v)}"))
 
     fig.tight_layout()
     save_fig(fig, "forecast_trend_ssd")
+    plt.close(fig)
+
+
+# ===========================================================================
+# figure 6: reallocation sensitivity sweep
+# ===========================================================================
+def fig_realloc_sensitivity():
+    print("\ngenerating: realloc_sensitivity")
+
+    # use latest year OCI data
+    latest_year = df_oci["year"].max()
+    df = df_oci[df_oci["year"] == latest_year].copy()
+    df = df.dropna(subset=["oci_score", "funding_gap", "requirements_usd_m", "funding_usd_m"])
+    df = df[df["oci_score"] > 0].copy()
+
+    # donor pool: crises with below-median funding gap (relatively better funded)
+    # recipient pool: crises with OCI > 0.5 (most overlooked)
+    median_gap = df["funding_gap"].median()
+    recipient_threshold = 0.5
+
+    donors = df[df["funding_gap"] <= median_gap]
+    recipients = df[df["oci_score"] > recipient_threshold]
+
+    donor_total_funding = donors["funding_usd_m"].sum()
+
+    # sweep reallocation from 0% to 30%
+    pct_range = np.arange(0, 31, 1)
+    avg_recipient_gaps = []
+    total_people_reached = []
+
+    for pct in pct_range:
+        pool = donor_total_funding * (pct / 100.0)
+        rec = recipients.copy()
+
+        # allocate proportional to OCI
+        total_oci = rec["oci_score"].sum()
+        rec["alloc"] = (rec["oci_score"] / total_oci) * pool
+
+        # cap at each recipient's shortfall
+        rec["shortfall"] = (rec["requirements_usd_m"] - rec["funding_usd_m"]).clip(lower=0)
+        rec["alloc"] = rec[["alloc", "shortfall"]].min(axis=1)
+
+        rec["new_funding"] = rec["funding_usd_m"] + rec["alloc"]
+        rec["new_gap"] = np.where(
+            rec["requirements_usd_m"] > 0,
+            1 - (rec["new_funding"] / rec["requirements_usd_m"]),
+            rec["funding_gap"],
+        )
+        rec["new_gap"] = rec["new_gap"].clip(0, 1)
+
+        avg_recipient_gaps.append(rec["new_gap"].mean())
+
+        # estimate additional people reached (linear: alloc * median efficiency)
+        # use beneficiaries/budget from project data as proxy
+        median_eff = 0.031  # from outlier scatter median
+        additional = rec["alloc"].sum() * 1e6 * median_eff  # alloc is in $M
+        total_people_reached.append(additional)
+
+    avg_recipient_gaps = np.array(avg_recipient_gaps)
+
+    with sns.axes_style("white"):
+        fig, ax = plt.subplots(figsize=(5.5, 2.8))
+
+        # area fill
+        ax.fill_between(
+            pct_range, avg_recipient_gaps, alpha=0.08, color=COLORS["blue"], linewidth=0,
+        )
+
+        # main line
+        ax.plot(
+            pct_range, avg_recipient_gaps, "-", color=COLORS["blue"], linewidth=2.0, zorder=4,
+        )
+
+        # dot markers at 5% intervals
+        marker_idx = pct_range % 5 == 0
+        ax.scatter(
+            pct_range[marker_idx], avg_recipient_gaps[marker_idx],
+            s=28, color=COLORS["blue"], edgecolors="white",
+            linewidths=1.0, zorder=5,
+        )
+
+        ax.set_xlabel("Reallocation (%)", fontsize=10)
+        ax.set_ylabel("Avg. Recipient Funding Gap", fontsize=10)
+        y_min = avg_recipient_gaps.min()
+        y_max = avg_recipient_gaps.max()
+        pad = (y_max - y_min) * 0.3
+        ax.set_ylim(max(0, y_min - pad), min(1, y_max + pad))
+        ax.yaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
+        ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{int(v)}%"))
+        ax.xaxis.set_major_locator(mticker.MultipleLocator(5))
+
+        # clean grid
+        ax.grid(axis="y", alpha=0.15, linewidth=0.6, color="#888888")
+        ax.grid(axis="x", visible=False)
+
+        sns.despine(ax=ax, top=True, right=True)
+        ax.spines["left"].set_linewidth(0.6)
+        ax.spines["bottom"].set_linewidth(0.6)
+        ax.spines["left"].set_color("#444444")
+        ax.spines["bottom"].set_color("#444444")
+        ax.tick_params(colors="#444444", labelsize=9)
+
+    fig.tight_layout()
+    save_fig(fig, "realloc_sensitivity")
     plt.close(fig)
 
 
@@ -460,6 +548,7 @@ if __name__ == "__main__":
     fig_cluster_gap()
     fig_outlier_scatter()
     fig_forecast_trend()
+    fig_realloc_sensitivity()
 
     print("\n" + "=" * 60)
     print("done. figures written to:")

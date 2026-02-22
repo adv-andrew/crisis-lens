@@ -10,6 +10,8 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
+from utils.donate_solana import render_donate_solana
+
 
 # --- Data loading ---
 @st.cache_data(ttl=3600, show_spinner="Loading OCI scores...")
@@ -92,6 +94,10 @@ r = row.iloc[0]
 # --- Header ---
 st.header(f"{country_name} ({selected_iso3})")
 st.caption(f"Year: {int(r['year'])}" if pd.notna(r.get("year")) else "")
+
+# --- Donate SOL to this country ---
+with st.container():
+    render_donate_solana(selected_iso3, country_name, compact=True)
 
 # --- AI Crisis Brief ---
 def _generate_crisis_brief(r, country_name, df_cluster, selected_iso3, selected_year):
