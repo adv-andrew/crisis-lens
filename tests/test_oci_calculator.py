@@ -97,7 +97,11 @@ def test_oci_country_name_extraction(sample_hno, sample_fts, sample_pop):
     assert afg["country_name"].iloc[0] == "Afghanistan"
 
 
-def test_oci_severity_defaults_to_max(sample_hno, sample_fts, sample_pop):
-    """nan severity should default to 5.0, giving severity_weight = 1.0"""
+def test_oci_no_severity_weight_column(sample_hno, sample_fts, sample_pop):
+    """Severity was removed from OCI formula to avoid double-counting with PIN/pop."""
     result = compute_oci_scores(sample_hno, sample_fts, sample_pop)
-    assert (result["severity_weight"] == 1.0).all()
+    # severity_weight should NOT be in the output — it was removed because
+    # derived severity correlated 0.96 with pin_normalized
+    assert "severity_weight" not in result.columns
+    # OCI should still be computed from pin_normalized * funding_gap
+    assert "oci_score" in result.columns

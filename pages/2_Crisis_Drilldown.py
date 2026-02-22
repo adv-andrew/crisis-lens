@@ -93,6 +93,93 @@ r = row.iloc[0]
 st.header(f"{country_name} ({selected_iso3})")
 st.caption(f"Year: {int(r['year'])}" if pd.notna(r.get("year")) else "")
 
+# --- AI Crisis Brief ---
+def _generate_crisis_brief(r, country_name, df_cluster, selected_iso3, selected_year):
+    """Generate a template-based intelligence brief for this crisis."""
+    pin_m = r.get("people_in_need_k", 0) / 1000 if pd.notna(r.get("people_in_need_k")) else 0
+    pop_m = r.get("total_population", 0) / 1e6 if pd.notna(r.get("total_population")) else 0
+    gap_pct = r.get("funding_gap", 0) * 100 if pd.notna(r.get("funding_gap")) else 0
+    oci = r.get("oci_score", 0)
+    req = r.get("requirements_usd_m", 0) if pd.notna(r.get("requirements_usd_m")) else 0
+    fund = r.get("funding_usd_m", 0) if pd.notna(r.get("funding_usd_m")) else 0
+    media = r.get("media_score", 0) if pd.notna(r.get("media_score")) else 0
+
+    # Severity tier from PIN/population ratio
+    pin_ratio = r.get("pin_normalized", 0) if pd.notna(r.get("pin_normalized")) else 0
+    if pin_ratio > 0.30:
+        severity_label = "Extreme (Phase 5)"
+    elif pin_ratio > 0.20:
+        severity_label = "Severe (Phase 4)"
+    elif pin_ratio > 0.10:
+        severity_label = "Serious (Phase 3)"
+    elif pin_ratio > 0.05:
+        severity_label = "Stressed (Phase 2)"
+    else:
+        severity_label = "Minimal (Phase 1)"
+
+    # Media description
+    if media > 0.8:
+        media_desc = "virtually no global media attention"
+    elif media > 0.6:
+        media_desc = "minimal global media coverage"
+    elif media > 0.4:
+        media_desc = "below-average media visibility"
+    elif media > 0.2:
+        media_desc = "moderate media coverage"
+    else:
+        media_desc = "relatively high media attention"
+
+    # Worst cluster
+    worst_cluster = None
+    if not df_cluster.empty:
+        df_c = df_cluster[
+            (df_cluster["country_iso3"] == selected_iso3)
+            & (df_cluster["year"] == selected_year)
+        ]
+        if not df_c.empty:
+            worst_row = df_c.sort_values("funding_gap", ascending=False).iloc[0]
+            worst_cluster = worst_row["cluster_name"]
+            worst_gap = worst_row["funding_gap"] * 100
+
+    # Build the brief
+    lines = []
+    lines.append(
+        f"**{country_name}** has **{pin_m:.1f} million people** in need of humanitarian assistance "
+        f"out of a population of {pop_m:.1f}M — a severity classification of **{severity_label}**."
+    )
+    lines.append(
+        f"The crisis requires **${req:,.0f}M** in funding but has received only "
+        f"**${fund:,.0f}M** ({100 - gap_pct:.0f}%), leaving a **{gap_pct:.0f}% funding gap**. "
+        f"It receives {media_desc} (media neglect score: {media:.2f})."
+    )
+    if worst_cluster:
+        lines.append(
+            f"The most critically underfunded sector is **{worst_cluster}** "
+            f"at **{worst_gap:.0f}% unfunded**. "
+            f"With an OCI score of **{oci:.3f}**, this crisis ranks among the "
+            f"{'most' if oci > 0.7 else 'moderately' if oci > 0.4 else 'less'} overlooked globally."
+        )
+    else:
+        lines.append(
+            f"With an OCI score of **{oci:.3f}**, this crisis ranks among the "
+            f"{'most' if oci > 0.7 else 'moderately' if oci > 0.4 else 'less'} overlooked globally."
+        )
+
+    return "\n\n".join(lines)
+
+
+brief = _generate_crisis_brief(r, country_name, df_cluster, selected_iso3, selected_year)
+st.markdown(
+    f'<div style="background:#ffffff;border-left:4px solid #cd3a1f;'
+    f'padding:16px 20px;border-radius:0 4px 4px 0;margin-bottom:20px;font-size:14px;line-height:1.7;'
+    f'border:1px solid #d4d4d4;border-left:4px solid #cd3a1f;box-shadow:0 1px 3px rgba(0,0,0,0.06)">'
+    f'<div style="color:#cd3a1f;font-weight:700;font-size:11px;letter-spacing:1px;margin-bottom:8px;'
+    f'font-family:Roboto Condensed,sans-serif;text-transform:uppercase">'
+    f'CRISIS INTELLIGENCE BRIEF</div>'
+    f'<div style="color:#4a4a4a">{brief}</div></div>',
+    unsafe_allow_html=True,
+)
+
 # --- KPI Metrics ---
 c1, c2, c3, c4 = st.columns(4)
 with c1:
@@ -125,10 +212,9 @@ col_left, col_right = st.columns(2)
 with col_left:
     st.subheader("OCI Component Breakdown")
 
-    comp_names = ["PIN Normalized", "Severity Weight", "Funding Gap"]
+    comp_names = ["PIN Normalized", "Funding Gap"]
     comp_values = [
         r.get("pin_normalized", 0),
-        r.get("severity_weight", 0),
         r.get("funding_gap", 0),
     ]
     if pd.notna(r.get("media_score")) and r.get("media_score", 0) > 0:

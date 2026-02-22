@@ -635,7 +635,7 @@ def export_frontend_json(df_oci: pd.DataFrame | None = None):
             "req": round(float(row.get("requirements_usd_m", 0)), 2),
             "fund": round(float(row.get("funding_usd_m", 0)), 2),
             "pin_norm": round(float(row.get("pin_normalized", 0)), 4),
-            "sev": round(float(row.get("severity_weight", 0)), 1),
+            "sev": round(float(row.get("pin_normalized", 0)), 4),
             "gap": round(float(row.get("funding_gap", 0)), 4),
             "media": round(float(row.get("media_score", 0)), 4),
             "oci": round(float(row.get("oci_score", 0)), 4),
