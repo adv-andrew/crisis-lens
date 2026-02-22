@@ -42,69 +42,55 @@ Your judges are **UN humanitarian analysts**, **Databricks engineers**, and **ha
 
 ---
 
-### 2. THE DEMO (0:20 – 1:25)
+### 2. THE DEMO (0:20 – 1:15)
 
-Screen recording with Person 2 narrating as voiceover. Pre-load every page. Zero loading spinners. Mouse movements slow and deliberate.
+Screen recording, Person 2 narrates as voiceover. Pre-load every page. Zero spinners.
 
 **PERSON 2 (voiceover):**
 
-*(Landing page / Map — show the animated timeline playing, 10 sec)*
-> "CrisisLens scores every humanitarian crisis on a single number — the Overlooked Crisis Index. It combines four signals: how many people need help, how much funding is missing, and how invisible the crisis is in global media."
+*(Map with animated timeline playing — 8 sec)*
+> "CrisisLens scores every crisis on one number — the Overlooked Crisis Index. Severity, funding gaps, and media attention. Darker red, more overlooked."
 
-*(Pause animation on 2026, hover over South Sudan — 5 sec)*
-> "South Sudan. OCI of 1.0 — the most overlooked crisis in the world."
+*(Pause on 2026, hover South Sudan — 3 sec)*
+> "South Sudan — most overlooked crisis in the world."
 
-*(Click into Crisis Drilldown — show the intelligence brief card, 10 sec)*
-> "Every crisis gets an intelligence brief. South Sudan: 9.9 million people, severity classification Extreme, 89% funding gap. The most underfunded sector — Camp Coordination — has received literally zero dollars."
+*(Crisis Drilldown — intelligence brief + cluster chart visible, 10 sec)*
+> "Drill in: 9.9 million people in need, 89% funding gap. Camp Coordination — zero percent funded. This is the cluster-level view fund managers actually use."
 
-*(Scroll to cluster bar chart — 5 sec)*
-> "These are cluster-level gaps. Fund managers operate at this level. This is the granularity that matters for reallocation decisions."
+*(Reallocation Simulator — drag slider, 12 sec)*
+> "What if we redirected 10% from better-funded crises?"
+*(drag slider)*
+> "Millions more people reached. One policy change."
 
-*(Navigate to Reallocation Simulator — 15 sec)*
-> "And here's where it gets actionable. What happens if we redirect just 10% of funding from better-covered crises to the most overlooked?"
+*(Funding Forecast — South Sudan trend, 7 sec)*
+> "And the gap is widening. Statistically significant. This is an early warning system."
 
-*(Drag the slider from 0 to 10-15%. Pause on the before/after chart.)*
-> "That's the projected impact. Millions more people reached. One policy lever."
-
-*(Navigate to Funding Forecast — show South Sudan trend, 8 sec)*
-> "The funding gap isn't just bad — it's getting worse. South Sudan's gap has been widening since 2024. Statistically significant. This is an early warning system."
-
-*(Navigate to Efficiency Outliers — show scatter plot, 7 sec)*
-> "We also analyzed 8,000 CBPF projects. 265 benchmark projects achieve 15.6 times the median efficiency. Our recommender matches underperforming projects with the best models to learn from."
-
-**Why this works:** You showed UN judges operational depth (cluster gaps, simulator). You showed Databricks judges analytical rigor (OCI formula, forecasts, z-scores). You showed hackathon judges six features in 60 seconds — scope and technical depth.
+*(Quick flash of Outlier scatter + Recommender table — 5 sec)*
+> "We benchmarked 8,000 projects. The top performers are 15x more efficient. The recommender finds the best models to scale."
 
 ---
 
-### 3. THE METHODOLOGY (1:25 – 1:45)
+### 3. THE METHODOLOGY (1:15 – 1:35)
 
-**Cut to PERSON 3**, on camera. The OCI formula displayed on a screen or whiteboard behind them:
+**Cut to PERSON 3**, on camera. Formula on screen behind them:
 
-> "The Overlooked Crisis Index combines three independent signals — people in need as a fraction of population, funding gap, and media neglect from Google Trends — into one reproducible score."
+> "OCI combines people in need, funding gap, and media neglect into one score. Five UN data sources, 24 crises, three years. Pipeline runs on Databricks. Documented in a research paper."
 
-*(Point to the formula behind you)*
-
-> "We integrated five UN data sources, computed OCI across 24 crisis contexts over three years, and ran the full pipeline in Databricks. The methodology is documented in a research paper."
-
-*(Flash the paper PDF on screen for 2 seconds)*
+*(Flash paper PDF — 1 second)*
 
 > "Every number is auditable. Every step is reproducible."
 
-**Why this works:** "Auditable" and "reproducible" are the magic words for UN judges. "Databricks" name-drop is essential for that prize pool. The paper flash signals academic rigor.
-
 ---
 
-### 4. THE CLOSE (1:45 – 2:00)
+### 4. THE CLOSE (1:35 – 1:55)
 
-**Cut to PERSON 4** (or all four together), direct to camera:
+**Cut to PERSON 4**, direct to camera:
 
-> "91.7% average funding gap across every crisis we track. 13 countries with virtually no media attention. Millions of people in crisis — and almost nobody is watching."
+> "91% average funding gap. 13 countries with almost zero media coverage. Millions of people — and nobody's watching."
 
-*Pause. Let it land.*
+> "CrisisLens doesn't just show the problem. It shows what to do about it."
 
-> "CrisisLens doesn't just show the problem. It shows what to do about it. The crises that don't make headlines still need funding."
-
-**End card (5 sec):** "CrisisLens" + team names + GitHub URL. Clean. No music needed.
+**End card (5 sec):** "CrisisLens" + team names + GitHub URL.
 
 ---
 
@@ -113,10 +99,10 @@ Screen recording with Person 2 narrating as voiceover. Pre-load every page. Zero
 | Scene | Duration | Who | Key Audience Hit |
 |-------|----------|-----|-----------------|
 | 1. Hook skit | 20 sec | Person 1 + 2 | Hackathon (creativity), UN (recognition) |
-| 2. Demo | 65 sec | Person 2 voiceover | All three judge groups |
+| 2. Demo | 55 sec | Person 2 voiceover | All three judge groups |
 | 3. Methodology | 20 sec | Person 3 | Databricks + UN (rigor) |
-| 4. Close | 15 sec | Person 4 | Hackathon (engagement), UN (impact) |
-| **Total** | **2:00** | | |
+| 4. Close + end card | 25 sec | Person 4 | Hackathon (engagement), UN (impact) |
+| **Total** | **~2:00** | | |
 
 ---
 
@@ -145,15 +131,14 @@ Add these as text overlays during the demo (big, bold, 2-3 seconds each):
 
 ## Demo Click Path (rehearse this exactly)
 
-1. **Landing page** — let the animated map play for 3 seconds
-2. **Overview Map** sidebar — check "Animate Timeline" — let it play 2024 to 2026
-3. **Pause on 2026** — hover South Sudan
-4. **Crisis Drilldown** — select South Sudan, 2026 — show intelligence brief + cluster chart
-5. **Reallocation Simulator** — drag slider from 0% to 15% — show before/after chart
-6. **Funding Forecast** — select South Sudan — show the trend line with projection
-7. **Efficiency Outliers** — show the scatter plot — hover a green benchmark point
+1. **Overview Map** — animated timeline already playing (pre-check the box)
+2. **Pause on 2026** — hover South Sudan
+3. **Crisis Drilldown** — South Sudan, 2026 — show brief + cluster chart
+4. **Reallocation Simulator** — drag slider 0% to 10-15%
+5. **Funding Forecast** — South Sudan trend line
+6. **Quick flash:** Outlier scatter + Recommender table (just show, minimal narration)
 
-Total: 7 clicks/navigations in 65 seconds. Pre-load everything.
+Total: 6 navigations in 55 seconds. Pre-load every page before recording.
 
 ---
 
