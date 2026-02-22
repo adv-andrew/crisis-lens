@@ -170,11 +170,13 @@ def _generate_crisis_brief(r, country_name, df_cluster, selected_iso3, selected_
 
 brief = _generate_crisis_brief(r, country_name, df_cluster, selected_iso3, selected_year)
 st.markdown(
-    f'<div style="background:linear-gradient(135deg,#1a1a2e,#16213e);border-left:4px solid #e74c3c;'
-    f'padding:16px 20px;border-radius:0 8px 8px 0;margin-bottom:20px;font-size:15px;line-height:1.7">'
-    f'<div style="color:#e74c3c;font-weight:700;font-size:13px;letter-spacing:1px;margin-bottom:8px">'
+    f'<div style="background:#ffffff;border-left:4px solid #cd3a1f;'
+    f'padding:16px 20px;border-radius:0 4px 4px 0;margin-bottom:20px;font-size:14px;line-height:1.7;'
+    f'border:1px solid #d4d4d4;border-left:4px solid #cd3a1f;box-shadow:0 1px 3px rgba(0,0,0,0.06)">'
+    f'<div style="color:#cd3a1f;font-weight:700;font-size:11px;letter-spacing:1px;margin-bottom:8px;'
+    f'font-family:Roboto Condensed,sans-serif;text-transform:uppercase">'
     f'CRISIS INTELLIGENCE BRIEF</div>'
-    f'{brief}</div>',
+    f'<div style="color:#4a4a4a">{brief}</div></div>',
     unsafe_allow_html=True,
 )
 

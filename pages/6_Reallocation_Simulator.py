@@ -91,9 +91,10 @@ gap_threshold = st.sidebar.slider(
     "Donor max funding gap",
     min_value=0.0,
     max_value=1.0,
-    value=0.50,
+    value=0.90,
     step=0.05,
-    help="Only crises with funding gap below this threshold contribute funds.",
+    help="Only crises with funding gap below this threshold contribute funds. "
+         "Most crises have gaps above 80%, so set this high to include donors.",
 )
 
 # --- Compute reallocation ---
@@ -195,7 +196,7 @@ if not recipients.empty and total_allocated > 0:
         x=df_chart["funding_gap"] * 100,
         name="Current Gap",
         orientation="h",
-        marker_color="rgba(231,76,60,0.6)",
+        marker_color="rgba(205,58,31,0.5)",
         text=[f"{v:.0f}%" for v in df_chart["funding_gap"] * 100],
         textposition="auto",
     ))
@@ -206,7 +207,7 @@ if not recipients.empty and total_allocated > 0:
         x=df_chart["new_funding_gap"] * 100,
         name=f"After {realloc_pct}% Reallocation",
         orientation="h",
-        marker_color="rgba(46,204,113,0.7)",
+        marker_color="rgba(127,185,47,0.7)",
         text=[f"{v:.0f}%" for v in df_chart["new_funding_gap"] * 100],
         textposition="auto",
     ))
@@ -355,7 +356,7 @@ if not donors.empty and not recipients.empty:
         y=[g * 100 for g in sweep_gaps],
         mode="lines+markers",
         name="Avg Recipient Gap (%)",
-        line=dict(color="#e74c3c", width=2.5),
+        line=dict(color="#cd3a1f", width=2.5),
         marker=dict(size=6),
     ))
 
@@ -391,7 +392,7 @@ if not donors.empty and not recipients.empty:
     fig_people.add_trace(go.Bar(
         x=sweep_pcts,
         y=sweep_people,
-        marker_color="rgba(46,204,113,0.6)",
+        marker_color="rgba(127,185,47,0.6)",
         name="Additional People Reached (M)",
     ))
     fig_people.add_vline(

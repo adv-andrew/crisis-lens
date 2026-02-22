@@ -199,9 +199,10 @@ if selected:
             f"({gap_pct:.0f}% gap). The crisis receives {media_desc}."
         )
         st.markdown(
-            f'<div style="border-left:3px solid #e74c3c;padding:8px 14px;'
-            f'margin-bottom:12px;font-size:14px;line-height:1.6;'
-            f'background:rgba(231,76,60,0.05);border-radius:0 6px 6px 0">'
+            f'<div style="border-left:3px solid #cd3a1f;padding:8px 14px;'
+            f'margin-bottom:12px;font-size:13px;line-height:1.6;'
+            f'background:#ffffff;border:1px solid #d4d4d4;border-left:3px solid #cd3a1f;'
+            f'border-radius:0 4px 4px 0;box-shadow:0 1px 2px rgba(0,0,0,0.04);color:#4a4a4a">'
             f'{brief}</div>',
             unsafe_allow_html=True,
         )
