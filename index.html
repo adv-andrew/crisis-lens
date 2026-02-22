@@ -600,73 +600,7 @@ body {
 <div class="bottom-bar" id="stats-bar"></div>
 
 <script>
-const OCI_DATA = [
-  {iso:"SDN",year:2026,name:"Sudan",plan:"Sudan HRP 2026",pin_k:33699.77,pop:47514529,req:2866.23,fund:373.13,pin_norm:0.7093,sev:1.0,gap:0.8698,media:0.4658,oci:0.8513,rank:4,severity:5},
-  {iso:"SDN",year:2025,name:"Sudan",plan:"Sudan HRP 2025",pin_k:30440.77,pop:47514529,req:4162.52,fund:1630.36,pin_norm:0.6407,sev:1.0,gap:0.6083,media:0.4658,oci:0.5364,rank:9,severity:5},
-  {iso:"SDN",year:2024,name:"Sudan",plan:"Sudan HRP 2024",pin_k:24786.37,pop:47514529,req:2695.68,fund:1906.85,pin_norm:0.5217,sev:0.8,gap:0.2926,media:0.4658,oci:0.1655,rank:31,severity:4},
-  {iso:"COD",year:2024,name:"DR Congo",plan:"DRC HRP 2024",pin_k:25397.90,pop:103199358,req:2580.63,fund:1322.48,pin_norm:0.2461,sev:0.4,gap:0.4875,media:0.0,oci:0.0571,rank:50,severity:2},
-  {iso:"COD",year:2025,name:"DR Congo",plan:"DRC HRP 2025",pin_k:21241.77,pop:103199358,req:2538.02,fund:669.86,pin_norm:0.2058,sev:0.4,gap:0.7361,media:0.0,oci:0.0731,rank:45,severity:2},
-  {iso:"COD",year:2026,name:"DR Congo",plan:"DRC HRP 2026",pin_k:14940.73,pop:103199358,req:1403.72,fund:144.54,pin_norm:0.1448,sev:0.4,gap:0.8970,media:0.0,oci:0.0621,rank:48,severity:2},
-  {iso:"AFG",year:2024,name:"Afghanistan",plan:"Afghanistan HRP 2024",pin_k:23666.39,pop:40411869,req:3059.59,fund:1583.51,pin_norm:0.5856,sev:1.0,gap:0.4824,media:0.7493,oci:0.4081,rank:12,severity:5},
-  {iso:"AFG",year:2025,name:"Afghanistan",plan:"Afghanistan HRP 2025",pin_k:22887.73,pop:40411869,req:2416.81,fund:1006.70,pin_norm:0.5664,sev:1.0,gap:0.5835,media:0.7493,oci:0.4780,rank:10,severity:5},
-  {iso:"YEM",year:2026,name:"Yemen",plan:"Yemen HRP 2026",pin_k:23100.0,pop:34449825,req:2470.0,fund:171.83,pin_norm:0.6705,sev:1.0,gap:0.9304,media:0.8069,oci:0.9150,rank:3,severity:5},
-  {iso:"YEM",year:2025,name:"Yemen",plan:"Yemen HRP 2025",pin_k:19540.22,pop:34449825,req:2478.77,fund:705.93,pin_norm:0.5672,sev:1.0,gap:0.7152,media:0.8069,oci:0.5936,rank:8,severity:5},
-  {iso:"YEM",year:2024,name:"Yemen",plan:"Yemen HRP 2024",pin_k:18182.66,pop:34449825,req:2705.76,fund:1527.53,pin_norm:0.5278,sev:0.8,gap:0.4355,media:0.8069,oci:0.2670,rank:22,severity:4},
-  {iso:"ETH",year:2024,name:"Ethiopia",plan:"Ethiopia HRP 2024",pin_k:21360.48,pop:102536651,req:3235.78,fund:1004.08,pin_norm:0.2083,sev:0.4,gap:0.6897,media:0.4190,oci:0.0752,rank:44,severity:2},
-  {iso:"SYR",year:2024,name:"Syria",plan:"Syria HRP 2024",pin_k:16661.47,pop:23227014,req:4074.16,fund:1483.22,pin_norm:0.7173,sev:1.0,gap:0.6359,media:0.7617,oci:0.6628,rank:6,severity:5},
-  {iso:"SYR",year:2026,name:"Syria",plan:"Syria HRP 2026",pin_k:16500.0,pop:23227014,req:3190.0,fund:161.80,pin_norm:0.7104,sev:1.0,gap:0.9493,media:0.7617,oci:0.9816,rank:2,severity:5},
-  {iso:"MMR",year:2024,name:"Myanmar",plan:"Myanmar HRP 2024",pin_k:18590.02,pop:54179306,req:993.55,fund:402.44,pin_norm:0.3431,sev:0.6,gap:0.5949,media:0.0045,oci:0.1517,rank:33,severity:3},
-  {iso:"MMR",year:2026,name:"Myanmar",plan:"Myanmar HRP 2026",pin_k:16229.05,pop:54179306,req:889.60,fund:62.18,pin_norm:0.2995,sev:0.6,gap:0.9301,media:0.0045,oci:0.2084,rank:26,severity:3},
-  {iso:"MMR",year:2025,name:"Myanmar",plan:"Myanmar HRP 2025",pin_k:1957.17,pop:54179306,req:1137.81,fund:200.05,pin_norm:0.0361,sev:0.2,gap:0.8242,media:0.0045,oci:0.0038,rank:61,severity:1},
-  {iso:"UKR",year:2024,name:"Ukraine",plan:"Ukraine HRP 2024",pin_k:14622.30,pop:37000000,req:3107.70,fund:2395.70,pin_norm:0.3952,sev:0.8,gap:0.2291,media:0.1011,oci:0.0899,rank:41,severity:4},
-  {iso:"UKR",year:2025,name:"Ukraine",plan:"Ukraine HRP 2025",pin_k:12708.87,pop:37000000,req:2633.53,fund:1532.25,pin_norm:0.3435,sev:0.6,gap:0.4182,media:0.1011,oci:0.1077,rank:38,severity:3},
-  {iso:"UKR",year:2026,name:"Ukraine",plan:"Ukraine HRP 2026",pin_k:10849.70,pop:37000000,req:2303.96,fund:310.09,pin_norm:0.2932,sev:0.6,gap:0.8654,media:0.1011,oci:0.1932,rank:28,severity:3},
-  {iso:"SSD",year:2026,name:"South Sudan",plan:"South Sudan HRP 2026",pin_k:9913.86,pop:12394970,req:1463.05,fund:153.43,pin_norm:0.7998,sev:1.0,gap:0.8951,media:0.5285,oci:1.0,rank:1,severity:5},
-  {iso:"SSD",year:2025,name:"South Sudan",plan:"South Sudan HRP 2025",pin_k:9290.09,pop:12394970,req:1694.78,fund:713.32,pin_norm:0.7495,sev:1.0,gap:0.5791,media:0.5285,oci:0.6048,rank:7,severity:5},
-  {iso:"SSD",year:2024,name:"South Sudan",plan:"South Sudan HRP 2024",pin_k:8996.99,pop:12394970,req:1788.82,fund:1283.92,pin_norm:0.7259,sev:1.0,gap:0.2823,media:0.5285,oci:0.2835,rank:20,severity:5},
-  {iso:"COL",year:2025,name:"Colombia",plan:"RMRP 2025",pin_k:9053.35,pop:53216592,req:467.23,fund:45.94,pin_norm:0.1701,sev:0.4,gap:0.9017,media:0.8639,oci:0.0875,rank:42,severity:2},
-  {iso:"COL",year:2024,name:"Colombia",plan:"RMRP 2024",pin_k:8307.13,pop:53216592,req:575.87,fund:169.88,pin_norm:0.1561,sev:0.4,gap:0.7050,media:0.8639,oci:0.0617,rank:49,severity:2},
-  {iso:"COL",year:2026,name:"Colombia",plan:"Colombia HRP 2026",pin_k:6900.0,pop:53216592,req:286.97,fund:15.58,pin_norm:0.1297,sev:0.4,gap:0.9457,media:0.8639,oci:0.0691,rank:46,severity:2},
-  {iso:"NGA",year:2024,name:"Nigeria",plan:"Nigeria HRP 2024",pin_k:7945.36,pop:216798930,req:926.54,fund:555.80,pin_norm:0.0366,sev:0.2,gap:0.4001,media:0.0977,oci:0.0,rank:65,severity:1},
-  {iso:"NGA",year:2025,name:"Nigeria",plan:"Nigeria HRP 2025",pin_k:7847.05,pop:216798930,req:910.25,fund:284.69,pin_norm:0.0362,sev:0.2,gap:0.6872,media:0.0977,oci:0.0026,rank:64,severity:1},
-  {iso:"NGA",year:2026,name:"Nigeria",plan:"Nigeria HRP 2026",pin_k:5900.0,pop:216798930,req:516.40,fund:39.79,pin_norm:0.0272,sev:0.2,gap:0.9230,media:0.0977,oci:0.0027,rank:63,severity:1},
-  {iso:"VEN",year:2025,name:"Venezuela",plan:"Venezuela HRP 2025",pin_k:7943.72,pop:27225775,req:606.50,fund:118.23,pin_norm:0.2918,sev:0.6,gap:0.8051,media:0.8058,oci:0.2037,rank:27,severity:3},
-  {iso:"VEN",year:2026,name:"Venezuela",plan:"Venezuela HRP 2026",pin_k:7900.0,pop:27225775,req:606.0,fund:22.55,pin_norm:0.2902,sev:0.6,gap:0.9628,media:0.8058,oci:0.2430,rank:24,severity:3},
-  {iso:"VEN",year:2024,name:"Venezuela",plan:"Venezuela HRP 2024",pin_k:7581.48,pop:27225775,req:617.03,fund:177.42,pin_norm:0.2785,sev:0.6,gap:0.7125,media:0.8058,oci:0.1715,rank:29,severity:3},
-  {iso:"MLI",year:2024,name:"Mali",plan:"Mali HRP 2024",pin_k:7107.19,pop:17907114,req:701.57,fund:309.56,pin_norm:0.3969,sev:0.8,gap:0.5588,media:0.9153,oci:0.2624,rank:23,severity:4},
-  {iso:"MLI",year:2025,name:"Mali",plan:"Mali HRP 2025",pin_k:6431.53,pop:17907114,req:771.31,fund:189.70,pin_norm:0.3592,sev:0.8,gap:0.7541,media:0.9153,oci:0.3212,rank:18,severity:4},
-  {iso:"MLI",year:2026,name:"Mali",plan:"Mali HRP 2026",pin_k:5100.0,pop:17907114,req:577.87,fund:46.53,pin_norm:0.2848,sev:0.6,gap:0.9195,media:0.9153,oci:0.2319,rank:25,severity:3},
-  {iso:"TCD",year:2025,name:"Chad",plan:"Chad HRP 2025",pin_k:7049.23,pop:18033749,req:1454.26,fund:436.51,pin_norm:0.3909,sev:0.8,gap:0.6998,media:0.9577,oci:0.3269,rank:17,severity:4},
-  {iso:"TCD",year:2024,name:"Chad",plan:"Chad HRP 2024",pin_k:6009.72,pop:18033749,req:1124.57,fund:639.89,pin_norm:0.3332,sev:0.6,gap:0.4310,media:0.9577,oci:0.1264,rank:37,severity:3},
-  {iso:"TCD",year:2026,name:"Chad",plan:"Chad HRP 2026",pin_k:4509.01,pop:18033749,req:986.07,fund:65.29,pin_norm:0.2500,sev:0.4,gap:0.9338,media:0.9577,oci:0.1373,rank:35,severity:2},
-  {iso:"SOM",year:2024,name:"Somalia",plan:"Somalia HRP 2024",pin_k:6869.72,pop:12327528,req:1585.26,fund:896.56,pin_norm:0.5573,sev:1.0,gap:0.4344,media:0.8752,oci:0.3569,rank:16,severity:5},
-  {iso:"SOM",year:2025,name:"Somalia",plan:"Somalia HRP 2025",pin_k:5979.74,pop:12327528,req:1421.99,fund:411.98,pin_norm:0.4851,sev:0.8,gap:0.7103,media:0.8752,oci:0.4069,rank:13,severity:4},
-  {iso:"SOM",year:2026,name:"Somalia",plan:"Somalia HRP 2026",pin_k:4796.04,pop:12327528,req:852.0,fund:113.20,pin_norm:0.3891,sev:0.8,gap:0.8671,media:0.8752,oci:0.3983,rank:14,severity:4},
-  {iso:"HTI",year:2026,name:"Haiti",plan:"Haiti HRP 2026",pin_k:6414.19,pop:11899555,req:880.33,fund:32.18,pin_norm:0.5390,sev:1.0,gap:0.9634,media:0.2349,oci:0.6857,rank:5,severity:5},
-  {iso:"HTI",year:2025,name:"Haiti",plan:"Haiti HRP 2025",pin_k:5986.46,pop:11899555,req:908.16,fund:236.38,pin_norm:0.5031,sev:0.8,gap:0.7397,media:0.2349,oci:0.3914,rank:15,severity:4},
-  {iso:"HTI",year:2024,name:"Haiti",plan:"Haiti HRP 2024",pin_k:5500.0,pop:11899555,req:673.77,fund:297.13,pin_norm:0.4622,sev:0.8,gap:0.5590,media:0.2349,oci:0.2706,rank:21,severity:4},
-  {iso:"BFA",year:2024,name:"Burkina Faso",plan:"Burkina Faso HRP 2024",pin_k:6293.94,pop:23558491,req:934.60,fund:429.96,pin_norm:0.2672,sev:0.6,gap:0.5400,media:0.9447,oci:0.1267,rank:36,severity:3},
-  {iso:"BFA",year:2025,name:"Burkina Faso",plan:"Burkina Faso HRP 2025",pin_k:5915.14,pop:23558491,req:792.57,fund:272.68,pin_norm:0.2511,sev:0.6,gap:0.6559,media:0.9447,oci:0.1452,rank:34,severity:3},
-  {iso:"BFA",year:2026,name:"Burkina Faso",plan:"Burkina Faso HRP 2026",pin_k:4400.0,pop:23558491,req:658.49,fund:57.96,pin_norm:0.1868,sev:0.4,gap:0.9120,media:0.9447,oci:0.0989,rank:40,severity:2},
-  {iso:"CAF",year:2024,name:"Central African Republic",plan:"CAR HRP 2024",pin_k:2801.81,pop:5742315,req:367.67,fund:259.46,pin_norm:0.4879,sev:0.8,gap:0.2943,media:1.0,oci:0.1710,rank:30,severity:4},
-  {iso:"CAF",year:2025,name:"Central African Republic",plan:"CAR HRP 2025",pin_k:2440.34,pop:5742315,req:326.06,fund:125.58,pin_norm:0.4250,sev:0.8,gap:0.6149,media:1.0,oci:0.3143,rank:19,severity:4},
-  {iso:"CAF",year:2026,name:"Central African Republic",plan:"CAR HRP 2026",pin_k:2287.0,pop:5742315,req:264.10,fund:29.37,pin_norm:0.3983,sev:0.8,gap:0.8888,media:1.0,oci:0.4271,rank:11,severity:4},
-  {iso:"HND",year:2024,name:"Honduras",plan:"Honduras HRP 2024",pin_k:2800.0,pop:9892674,req:203.16,fund:65.37,pin_norm:0.2830,sev:0.6,gap:0.6783,media:0.5483,oci:0.1583,rank:32,severity:3},
-  {iso:"HND",year:2025,name:"Honduras",plan:"Honduras HRP 2025",pin_k:1640.22,pop:9892674,req:138.49,fund:15.58,pin_norm:0.1658,sev:0.4,gap:0.8875,media:0.5483,oci:0.0790,rank:43,severity:2},
-  {iso:"NER",year:2024,name:"Niger",plan:"Niger HRP 2024",pin_k:4500.0,pop:26367847,req:662.19,fund:363.39,pin_norm:0.1707,sev:0.4,gap:0.4512,media:0.8442,oci:0.0419,rank:52,severity:2},
-  {iso:"NER",year:2025,name:"Niger",plan:"Niger HRP 2025",pin_k:2580.33,pop:26367847,req:603.03,fund:156.82,pin_norm:0.0979,sev:0.2,gap:0.7400,media:0.8442,oci:0.0177,rank:57,severity:1},
-  {iso:"NER",year:2026,name:"Niger",plan:"Niger HRP 2026",pin_k:2600.0,pop:26367847,req:449.0,fund:50.58,pin_norm:0.0986,sev:0.2,gap:0.8873,media:0.8442,oci:0.0221,rank:55,severity:1},
-  {iso:"CMR",year:2024,name:"Cameroon",plan:"Cameroon HRP 2024",pin_k:3369.53,pop:29442318,req:371.37,fund:170.11,pin_norm:0.1144,sev:0.2,gap:0.5420,media:0.9853,oci:0.0150,rank:59,severity:1},
-  {iso:"CMR",year:2025,name:"Cameroon",plan:"Cameroon HRP 2025",pin_k:3322.06,pop:29442318,req:359.30,fund:84.32,pin_norm:0.1128,sev:0.2,gap:0.7653,media:0.9853,oci:0.0224,rank:54,severity:1},
-  {iso:"CMR",year:2026,name:"Cameroon",plan:"Cameroon HRP 2026",pin_k:2900.0,pop:29442318,req:308.0,fund:20.27,pin_norm:0.0985,sev:0.2,gap:0.9342,media:0.9853,oci:0.0241,rank:53,severity:1},
-  {iso:"MOZ",year:2024,name:"Mozambique",plan:"Mozambique HRP 2024",pin_k:2252.97,pop:35163992,req:413.42,fund:175.61,pin_norm:0.0641,sev:0.2,gap:0.5752,media:0.9972,oci:0.0074,rank:60,severity:1},
-  {iso:"MOZ",year:2025,name:"Mozambique",plan:"Mozambique HRP 2025",pin_k:1305.03,pop:35163992,req:352.10,fund:122.91,pin_norm:0.0371,sev:0.2,gap:0.6509,media:0.9972,oci:0.0036,rank:62,severity:1},
-  {iso:"MOZ",year:2026,name:"Mozambique",plan:"Mozambique HRP 2026",pin_k:2356.16,pop:35163992,req:534.34,fund:26.19,pin_norm:0.0670,sev:0.2,gap:0.9510,media:0.9972,oci:0.0156,rank:58,severity:1},
-  {iso:"GTM",year:2024,name:"Guatemala",plan:"Guatemala HRP 2024",pin_k:5300.0,pop:17843132,req:125.40,fund:66.73,pin_norm:0.2970,sev:0.6,gap:0.4679,media:0.2671,oci:0.1076,rank:39,severity:3},
-  {iso:"GTM",year:2025,name:"Guatemala",plan:"Guatemala HRP 2025",pin_k:2163.95,pop:17843132,req:100.56,fund:24.99,pin_norm:0.1213,sev:0.2,gap:0.7515,media:0.2671,oci:0.0206,rank:56,severity:1},
-  {iso:"SLV",year:2024,name:"El Salvador",plan:"El Salvador HRP 2024",pin_k:1119.20,pop:6350969,req:86.59,fund:26.11,pin_norm:0.1762,sev:0.4,gap:0.6985,media:0.5302,oci:0.0653,rank:47,severity:2},
-  {iso:"SLV",year:2025,name:"El Salvador",plan:"El Salvador HRP 2025",pin_k:818.70,pop:6350969,req:66.92,fund:18.64,pin_norm:0.1289,sev:0.4,gap:0.7214,media:0.5302,oci:0.0484,rank:51,severity:2},
-];
+let OCI_DATA = [];
 
 const COUNTRY_CENTERS = {
   SDN:[30.0,-15.0],
@@ -739,7 +673,16 @@ const map = new mapboxgl.Map({
 
 map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-map.on('load', () => {
+map.on('load', async () => {
+  try {
+    const resp = await fetch('data/processed/oci_frontend.json');
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    OCI_DATA = await resp.json();
+  } catch (e) {
+    console.error('Failed to load OCI data:', e);
+    document.getElementById('loading').querySelector('div:last-child').textContent = 'Failed to load crisis data. Run: python utils/data_loader.py';
+    return;
+  }
   document.getElementById('loading').classList.add('hidden');
 
   map.addSource('countries', { type: 'vector', url: 'mapbox://mapbox.country-boundaries-v1' });

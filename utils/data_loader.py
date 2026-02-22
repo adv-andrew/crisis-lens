@@ -603,7 +603,51 @@ def run_full_pipeline():
             name = row.get("country_name") or row["country_iso3"]
             print(f"  {name}: OCI={row['oci_score']:.4f} (rank #{row.get('oci_rank', '?')})")
 
+    # Export JSON for static HTML frontend
+    export_frontend_json(df_oci)
+
     print("\nPipeline complete.")
+
+
+def export_frontend_json(df_oci: pd.DataFrame | None = None):
+    """
+    Export OCI scores as JSON for the static HTML frontend (crisis-lens/index.html).
+    Reads from processed CSV if no DataFrame provided.
+    """
+    if df_oci is None:
+        df_oci = load_oci_scores()
+    if df_oci.empty:
+        print("  No OCI data to export for frontend.")
+        return
+
+    PROC_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Map CSV columns to the short names the frontend expects
+    records = []
+    for _, row in df_oci.iterrows():
+        records.append({
+            "iso": row["country_iso3"],
+            "year": int(row["year"]),
+            "name": row.get("country_name", row["country_iso3"]),
+            "plan": row.get("plan_name", ""),
+            "pin_k": round(float(row.get("people_in_need_k", 0)), 2),
+            "pop": int(row.get("total_population", 0)),
+            "req": round(float(row.get("requirements_usd_m", 0)), 2),
+            "fund": round(float(row.get("funding_usd_m", 0)), 2),
+            "pin_norm": round(float(row.get("pin_normalized", 0)), 4),
+            "sev": round(float(row.get("severity_weight", 0)), 1),
+            "gap": round(float(row.get("funding_gap", 0)), 4),
+            "media": round(float(row.get("media_score", 0)), 4),
+            "oci": round(float(row.get("oci_score", 0)), 4),
+            "rank": int(row.get("oci_rank", 0)),
+            "severity": int(row.get("ocha_severity", 0)),
+        })
+
+    out_path = PROC_DIR / "oci_frontend.json"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False)
+
+    print(f"  Saved oci_frontend.json ({len(records)} records)")
 
 
 if __name__ == "__main__":
