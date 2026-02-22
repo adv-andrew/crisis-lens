@@ -99,6 +99,27 @@ The paper's motivation rests on these gaps:
 
 ## Phase 2: Paper Skeleton
 
+### Modular Main TeX Pattern (Required)
+
+Use a thin `paper/main.tex` that only contains:
+- preamble and metadata (`\title`, `\author`, `\date`)
+- `\begin{document}` / `\end{document}`
+- ordered `\input{sections/...}` statements
+
+Required include order:
+1. `sections/00_abstract.tex`
+2. `sections/01_introduction.tex`
+3. `sections/02_*` for problem/method sections
+4. `sections/03_*` and onward for setup/results/discussion/conclusion
+5. `sections/08_reproducibility_statement.tex` (or equivalent)
+6. `sections/09_references.tex` (if inline bibliography is used)
+
+Rules:
+- Do not keep section prose directly in `main.tex`.
+- Add one file per major section; use stable numeric prefixes for ordering.
+- Keep figures/tables in the section file where they are first discussed.
+- Keep labels local to section files and reference them globally as usual.
+
 ### Proposed Structure
 
 ```
@@ -120,9 +141,9 @@ The paper's motivation rests on these gaps:
        - CBPF (project-level budgets and beneficiaries)
        - table summarizing each source, rows, years, fields
    2.3 OCI Formula
-       - PIN normalization
-       - severity weighting
-       - funding gap computation
+       - PIN normalization (P/N)
+       - funding gap computation (G)
+       - media neglect multiplier (1 + 0.2M)
        - min-max normalization across crises
        - equation block with clear variable definitions
    2.4 Cluster-Level Mismatch Analysis
@@ -145,11 +166,9 @@ The paper's motivation rests on these gaps:
 
 4. Results
    4.1 OCI Rankings
-       - table: top 10 most overlooked crises with OCI components
+       - table: top 5 most overlooked crises with OCI components
        - choropleth figure showing OCI scores globally
-       - key finding: South Sudan (1.0), Sudan (0.86), Haiti (0.73)
-       - note: 5 countries (Yemen, Myanmar, Syria, Ukraine, CAR) have OCI=0 due to
-         missing population data in COD-PS (discuss as limitation)
+       - key finding: South Sudan (1.000), Yemen (0.858), Syria (0.844), Sudan (0.837), Haiti (0.695)
    4.2 Cluster-Level Findings
        - figure: horizontal bar chart of cluster funding gaps for top 3 OCI countries
        - finding: within-country variance is large (some clusters 90%+ gap, others <30%)
@@ -165,9 +184,9 @@ The paper's motivation rests on these gaps:
        - comparison: sklearn cosine similarity vs. Actian VectorAI DB nearest-neighbor search
        - finding: both return identical top-5 for most queries; Actian is faster at scale
    4.5 Funding Trajectory Forecasting
-       - figure: line plot with CI bands for top at-risk crises
-       - 10 crises identified as "at risk of being forgotten" (positive funding gap slope + above-median OCI)
-       - South Sudan gap growing at +30.6 percentage points/year
+       - figure: line plot with CI bands using full FTS history
+       - 7 crises with statistically significant positive slope + above-median OCI
+       - top slopes: Myanmar (0.031/yr), Cameroon (0.030/yr), Mali (0.026/yr)
 
 5. Discussion
    5.1 Related Work
@@ -176,12 +195,9 @@ The paper's motivation rests on these gaps:
        - aid efficiency literature
        - funding attention bias research ("forgotten crises" reports from MSF, ECHO)
    5.2 Limitations
-       - severity_weight = 1.0 for all crises (HNO lacks numeric severity; OCI differentiates
-         on PIN and funding gap only)
-       - 5 countries missing from COD-PS population data (OCI = 0 for Yemen, Myanmar, Syria,
-         Ukraine, CAR; fixable with fallback population sources)
+       - media attention from search interest is noisy and language-biased
        - CBPF cluster inference uses keyword matching on project titles (~85% accuracy)
-       - linear funding forecast assumes trends continue (sudden events not captured)
+       - linear trend extrapolation is descriptive, not predictive; slopes sensitive to time window
        - only HRP-covered countries scored (non-HRP crises excluded)
    5.3 Broader Impact
        - tool designed for UN fund managers to identify reallocation opportunities
@@ -232,31 +248,30 @@ Additional project-specific notes below.
 ### Key Numbers (source of truth, do not fabricate)
 
 ```
-OCI scores:
+OCI scores (current formula: OCI = (P/N) * G * (1 + 0.2M), no severity term):
   - 65 crisis-year observations across 24 countries (2024-2026)
-  - Top 3: South Sudan (OCI=1.000, gap=89.5%), Sudan (0.862, gap=87.0%), Haiti (0.725, gap=96.3%)
-  - 14 observations have OCI=0 due to missing population (5 countries: YEM, MMR, SYR, UKR, CAF)
-  - severity_weight = 1.0 for all crises (HNO lacks numeric severity)
-  - pin_normalized range: 0.027 to 0.800 (mean 0.298)
-  - funding_gap range: 0.229 to 0.963 (mean 0.695)
+  - Top 5 (2026): South Sudan (1.000), Yemen (0.858), Syria (0.844), Sudan (0.837), Haiti (0.695)
+  - severity was removed: P/N quintile proxy correlated 0.96 with P/N, added no signal
+  - population fallbacks in data_loader.py cover YEM, MMR, SYR, UKR, CAF (no longer OCI=0)
+  - pin_normalized range: 0.027 to 0.800
+  - funding_gap range: 0.229 to 0.963
+  - 2026 figures are year-to-date (funding accrues throughout year)
 
 Projects:
   - 8,091 CBPF projects across 22 countries, 13 clusters, 7 years (2020-2026)
   - 4 org types: International NGO, National NGO, UN Agency, Others
-  - Budget range: $22,000 to $29,500,000 (median $500,000)
-  - 265 high-efficiency benchmarks (z > 2.0), 0 low-efficiency outliers (min z = -1.41)
-  - 7 projects with insufficient data for z-score computation
+  - 265 high-efficiency benchmarks (z > 2.0), 7 insufficient data
+  - benchmark median efficiency 0.469 ben/USD vs 0.030 non-benchmark (15.6x)
 
 Funding:
-  - 1,069 funding rows across all years
-  - Total requirements: $509,818M
-  - Total funded: $268,923M
-  - Overall gap: 47.3%
+  - 1,069 funding rows across all years (back to 2000+ for many countries)
+  - full history used for trend analysis (not just OCI years)
 
-Forecasting:
-  - 23 countries with 2+ years of data (forecast eligible)
-  - 10 crises at risk (positive slope + above-median OCI)
-  - Steepest decline: South Sudan (+30.6 pp/year), Sudan (+28.9 pp/year)
+Forecasting (full-history slopes):
+  - steepest significant: Myanmar (0.031/yr, n=15), Cameroon (0.030/yr, n=13), Mali (0.026/yr, n=20)
+  - South Sudan: 0.021/yr over 16 years (not the 0.306 from 3-point window)
+  - Ukraine: 0.006/yr, not significant (reversion from post-invasion funding surge)
+  - 7 crises with statistically significant positive slope + above-median OCI
 ```
 
 ### Terminology (use consistently, do not alternate)
@@ -283,15 +298,11 @@ overlooked           (not "forgotten", "neglected" -- our index name uses "overl
 - Gray fill for non-HRP countries (not white, avoids looking empty)
 - Caption: "Overlooked Crisis Index scores for 24 HRP-covered countries (2026). Darker red indicates greater mismatch between humanitarian need and funding coverage."
 
-### Figure 2: OCI Component Breakdown (horizontal grouped bars)
+### Figure 2 (removed): OCI Component Breakdown
+- removed from paper: with severity gone, OCI has only P/N, G, and media multiplier.
+  Full component table is in Appendix A instead.
 
-- Type: horizontal bar chart (golden standard Figure 4.1 style)
-- Shows: PIN normalized, severity weight, and funding gap for top 10 OCI countries
-- Colors: BAR_COLORS palette (gray baseline component, warm, cool)
-- Y-axis: country names, X-axis: 0.0 to 1.0
-- Caption: "OCI component values for the 10 most overlooked crises. The OCI is the product of these three normalized components."
-
-### Figure 3: Cluster-Level Funding Gaps (horizontal bars)
+### Figure 3: Cluster-Level Funding Gaps (vertical bars)
 
 - Type: horizontal bar chart, small multiples (one panel per country) or single panel
 - Shows: funding gap per cluster for South Sudan, Sudan, Haiti
@@ -306,12 +317,12 @@ overlooked           (not "forgotten", "neglected" -- our index name uses "overl
 
 ### Figure 5: Funding Trajectory Forecast (line plot with CI bands)
 
-- Type: line plot (golden standard Figure 4.6 style)
-- Shows: historical funding gap + projected 2027 gap for top 3 at-risk crises
+- Type: line plot with full FTS history (not just OCI years)
+- Shows: historical funding gap (2011-2026) + projected 2027 gap for South Sudan
 - Solid lines with circular markers for historical, star markers for projected
-- CI bands: shaded (alpha=0.2)
-- Orange shaded region for forecast zone
-- Caption: "Funding gap trajectory for the three crises most at risk of being forgotten. Shaded bands indicate projection under linear trend assumption."
+- CI bands: shaded (alpha=0.12, soft red, no hard edges)
+- Red dashed trend line with slope annotation
+- Caption: "Funding-gap trend for South Sudan (2011-2026) with linear projection to 2027."
 
 ### Figure 6: Recommender Example (table-figure hybrid)
 
@@ -329,18 +340,10 @@ overlooked           (not "forgotten", "neglected" -- our index name uses "overl
 | COD-PS | HumData | ~250 | various | country, total population |
 | CBPF Projects | OCHA API | 8,091 | 2020-2026 | budget, beneficiaries, cluster, org type |
 
-### Table 2: Top 10 OCI Rankings
+### Table 2: Top 5 OCI Rankings (2026)
 
-| Rank | Country | Year | OCI | PIN (M) | Funding Gap | PIN Norm | Sev. Weight |
-|---|---|---|---|---|---|---|---|
-| 1 | South Sudan | 2026 | 1.000 | 9.9 | 89.5% | 0.800 | 1.0 |
-| 2 | Sudan | 2026 | 0.862 | 33.7 | 87.0% | 0.709 | 1.0 |
-| 3 | Haiti | 2026 | 0.725 | 6.4 | 96.3% | 0.539 | 1.0 |
-| 4 | South Sudan | 2025 | 0.606 | 9.3 | 57.9% | 0.750 | 1.0 |
-| 5 | Sudan | 2025 | 0.544 | 30.4 | 60.8% | 0.641 | 1.0 |
-| ... | ... | ... | ... | ... | ... | ... | ... |
-
-Bold: highest OCI, highest gap, highest PIN per column.
+See paper Table 2 and Appendix A for full scores. Current top 5:
+South Sudan (1.000), Yemen (0.858), Syria (0.844), Sudan (0.837), Haiti (0.695)
 
 ### Table 3: Efficiency Outlier Summary by Cluster
 
@@ -386,10 +389,11 @@ Follow the master RESEARCH.md Phase 6 exactly (6 review passes, quality scoring 
 
 In addition to the standard 6 passes, verify:
 - All OCI numbers match `data/processed/oci_scores.csv`
-- Project counts match (8,091 projects, 265 benchmarks, 13 clusters, 22 countries)
-- Funding totals match ($509.8B requirements, $268.9B funded, 47.3% gap)
-- OCI formula in paper matches `utils/oci_calculator.py` exactly
-- Limitations section covers all 5 known issues (severity=1.0, missing population, cluster inference, linear forecast, HRP-only)
+- Project counts match (8,091 projects, 265 benchmarks, 7,826 non-benchmark)
+- OCI formula in paper matches `utils/oci_calculator.py` exactly (no severity term)
+- Trend slopes computed from funding_clean.csv full history (not 3-point OCI window)
+- 2026 funding gap caveat present (year-to-date, not full-year)
+- Limitations section covers 3 issues (media noise, cluster inference, linear trends)
 - No em dashes anywhere
 - Terminology consistency (check the list in Phase 3)
 
@@ -439,17 +443,18 @@ cd paper/
 
 ### Key Decisions
 
-- OCI formula: `PIN_norm * severity_weight * funding_gap`, min-max normalized. Do not modify without asking.
-- severity_weight defaults to 1.0 for all crises (HNO data lacks numeric severity). Known limitation, not a bug.
+- OCI formula: `(P/N) * funding_gap * (1 + 0.2 * media_score)`, min-max normalized. Severity removed (correlated 0.96 with P/N).
 - Efficiency threshold: z > 2.0 on log-transformed beneficiary-to-budget ratio within (cluster, year) groups.
+- Trend slopes use full FTS funding history (funding_clean.csv), not the 3-year OCI window.
 - Actian VectorAI DB is the sponsor challenge integration. Falls back to sklearn cosine similarity.
+- Media scores use static January 2025 baseline (pytrends not installed in production).
 
 ### Known Data Issues
 
-- 5 countries missing from COD-PS: YEM, MMR, SYR, UKR, CAF. OCI=0 because PIN cannot normalize without population.
-- Country names truncated in HNO: "Republique" (DRC or CAR), "El" (El Salvador), "Burkina" (Burkina Faso), "Tchad" (Chad), "Myanmar Original" (duplicate).
-- "Haiti" and "Haiti" appear as separate entries (unicode difference).
-- No low-efficiency outliers detected (min z = -1.41, threshold = -2.0). Data is well-normalized within clusters.
+- Population fallbacks added for YEM, MMR, SYR, UKR, CAF (previously OCI=0, now resolved).
+- 2026 funding gaps are year-to-date and will decrease as funding flows in. Not comparable to full-year figures.
+- CBPF cluster assignment uses keyword matching (~85% accuracy). Affects outlier detection counts.
+- Country names truncated in HNO: "Republique" (DRC or CAR), "El" (El Salvador), "Burkina" (Burkina Faso), "Tchad" (Chad).
 
 ### Style Choices
 
@@ -473,6 +478,7 @@ crisis-lens/
   matheus-style.tex       # personal style file (copy into paper/)
   paper/                  # created when Overleaf repo is cloned
     main.tex
+    sections/             # REQUIRED: one .tex per section, loaded by main.tex
     matheus-style.tex
     references.bib
     lit-matrix.md
@@ -489,14 +495,11 @@ crisis-lens/
 ### Commands
 
 ```bash
-# generate figures
-python experiments/generate_figures.py
+# generate figures (saves to figures/ and paper/figures/)
+python generate_figures.py
 
-# compile paper
-cd paper/ && pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
-
-# push to overleaf
-cd paper/ && git add -A && git commit -m "update" && git push
+# compile paper (run twice for cross-references)
+cd ../paper/ && pdflatex -interaction=nonstopmode main.tex && pdflatex -interaction=nonstopmode main.tex
 
 # refresh data
 python utils/data_loader.py
