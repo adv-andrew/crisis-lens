@@ -4,12 +4,11 @@ CrisisLens OCI Calculator
 Computes the Overlooked Crisis Index (OCI) per country-year.
 
 Formula:
-    severity_weight = ocha_severity / 5.0
     pin_normalized  = people_in_need / total_population
     funding_gap     = 1 - (actual_funding / total_requirements)
     media_score     = 1 - normalized_search_interest  (0=high coverage, 1=ignored)
 
-    OCI = (pin_normalized * severity_weight * funding_gap) * (1 + media_score * 0.2)
+    OCI = (pin_normalized * funding_gap) * (1 + media_score * 0.2)
 
 OCI is normalized 0-1 across all crises. Higher = more overlooked.
 """
@@ -61,29 +60,10 @@ def compute_oci_scores(
     else:
         df["media_score"] = 0.0  # no media data = don't penalize
 
-    # ----- OCI component: severity_weight -----
-    # HNO CSVs lack numeric severity. Derive a proxy from PIN/population
-    # ratio using quantile binning into OCHA's 1-5 scale.
-    df["_pin_pop_ratio"] = np.where(
-        df["total_population"].notna() & (df["total_population"] > 0),
-        (df["people_in_need_k"] * 1000) / df["total_population"],
-        np.nan,
-    )
-    # Quantile-based severity: higher ratio → higher severity
-    valid_ratio = df["_pin_pop_ratio"].dropna()
-    if len(valid_ratio) >= 5:
-        bins = [0] + valid_ratio.quantile([0.2, 0.4, 0.6, 0.8]).tolist() + [float("inf")]
-        labels = [1, 2, 3, 4, 5]
-        df["derived_severity"] = pd.cut(
-            df["_pin_pop_ratio"], bins=bins, labels=labels, include_lowest=True,
-        ).astype(float)
-    else:
-        df["derived_severity"] = 3.0
-
-    # Use real OCHA severity if available, otherwise derived
-    df["ocha_severity"] = df["ocha_severity"].fillna(df["derived_severity"]).fillna(3.0)
-    df["severity_weight"] = (df["ocha_severity"] / 5.0).clip(0, 1)
-    df = df.drop(columns=["_pin_pop_ratio", "derived_severity"])
+    # severity removed from OCI: the derived proxy was quantile-binned from
+    # P/N itself (correlation 0.96), adding no independent signal and
+    # effectively squaring the need component. OCI now uses three
+    # independent factors: P/N, funding gap, and media neglect.
 
     # ----- OCI component: pin_normalized -----
     df["people_in_need"] = df["people_in_need_k"] * 1000
@@ -96,10 +76,13 @@ def compute_oci_scores(
 
     # ----- OCI component: funding_gap -----
     df["has_funding_data"] = df["funding_gap"].notna()
+    # default 0.5 for missing funding data (currently no rows use this;
+    # all OCI countries have FTS coverage. if future data lacks FTS,
+    # has_funding_data column flags which rows used the default.)
     df["funding_gap"] = pd.to_numeric(df["funding_gap"], errors="coerce").fillna(0.5).clip(0, 1)
 
     # ----- OCI raw score with media multiplier -----
-    base_oci = df["pin_normalized"] * df["severity_weight"] * df["funding_gap"]
+    base_oci = df["pin_normalized"] * df["funding_gap"]
     df["oci_raw"] = base_oci * (1 + df["media_score"] * 0.2)
 
     # Countries with no population data get NaN pin_normalized -> oci_raw = 0
@@ -156,10 +139,10 @@ def compute_oci_scores(
         "people_in_need_k", "people_targeted_k",
         "total_population",
         "requirements_usd_m", "funding_usd_m",
-        "pin_normalized", "severity_weight", "funding_gap",
+        "pin_normalized", "funding_gap",
         "media_score",
         "oci_raw", "oci_score", "oci_rank",
-        "has_funding_data", "ocha_severity",
+        "has_funding_data",
     ]
 
     return df[[c for c in output_cols if c in df.columns]].reset_index(drop=True)
