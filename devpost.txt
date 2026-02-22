@@ -12,14 +12,15 @@ $ OCI = \left(\frac{P}{N}\right) \cdot \left(\frac{S}{5}\right) \cdot G \cdot \l
 
 where \\( P/N \\) is people in need as a fraction of population, \\( S \\) is a derived severity score (1–5), \\( G \\) is the funding gap, and \\( M \\) is a media neglect score from Google Trends. Higher OCI = more overlooked.
 
-The system provides six tools for decision-makers:
+The system provides seven tools for decision-makers:
 
-- **Interactive Geo Map** - Choropleth world map with four switchable layers (OCI, Funding Gap, People in Need, Media Neglect). Click any country to drill down.
-- **Crisis Drilldown** - Per-country OCI decomposition and cluster-level funding gaps (WASH, Health, Food Security, etc.)
+- **Interactive Geo Map** - Choropleth world map with four switchable layers (OCI, Funding Gap, People in Need, Media Neglect). Click any country to drill down with an instant crisis brief.
+- **Crisis Intelligence Briefs** - Template-generated natural-language summaries that synthesize OCI components, severity classification (Extreme/Severe/Serious/Stressed/Minimal derived from PIN/population ratio), media visibility, and the most underfunded cluster into a 3-sentence situational overview.
+- **Crisis Drilldown** - Per-country OCI decomposition and cluster-level funding gaps (WASH, Health, Food Security, etc.) with intelligence briefs and historical trend analysis.
 - **Efficiency Outlier Detection** - Z-score analysis on beneficiary-to-budget ratios across 8,000+ CBPF projects, flagging high-efficiency benchmarks
 - **Project Recommender** - Cosine similarity search over project feature vectors to surface comparable high-efficiency benchmarks from other contexts
 - **Funding Forecast** - Linear regression with 90% prediction intervals on funding gap trajectories, identifying crises where the gap is statistically widening
-- **Reallocation Simulator** - Interactive policy tool that redistributes funding from well-funded crises to the most overlooked, proportional to OCI score
+- **Reallocation Simulator** - Interactive policy tool where decision-makers adjust sliders to redistribute funding from well-funded crises to the most overlooked, proportional to OCI score. Includes before/after gap comparison, sensitivity analysis across reallocation levels, and estimated additional people reached.
 
 ### Key Findings
 
@@ -36,7 +37,11 @@ The system provides six tools for decision-makers:
 
 **Statistical analysis:** Funding forecasts use `scipy.stats.linregress` with proper 90% prediction intervals (not just extrapolated lines). Project efficiency outliers are detected via log-transformed z-scores within each cluster-year group. The recommender uses scikit-learn's cosine similarity over a sparse feature matrix combining one-hot encoded categoricals with scaled numerics.
 
-**Frontend:** Streamlit multi-page app with Plotly for all visualizations. The reallocation simulator uses interactive sliders to model funding redistribution in real time.
+**Crisis intelligence briefs:** Each country drilldown includes an auto-generated 3-sentence intelligence brief that synthesizes OCI components, a derived severity classification (Extreme through Minimal, based on PIN/population thresholds), media visibility level, and the most critically underfunded cluster. These are template-driven (no LLM dependency) and update dynamically as the user navigates between crises.
+
+**Reallocation simulator:** Interactive policy tool with three slider controls: reallocation percentage (0-30%), recipient OCI threshold, and donor funding gap threshold. Funds are distributed proportional to OCI score and capped at each recipient's shortfall. A sensitivity sweep shows diminishing marginal returns. Estimated additional people reached uses a linear funding-coverage model.
+
+**Frontend:** Streamlit multi-page app with Plotly for all visualizations. Six interactive pages plus a landing dashboard.
 
 **Databricks integration:** The full pipeline is reproduced in a Databricks notebook that writes all outputs to Delta Lake tables for SQL access. Spark/Delta features are detected at runtime and degrade gracefully when running locally.
 
@@ -55,7 +60,8 @@ The system provides six tools for decision-makers:
 ## Accomplishments we're proud of
 
 - The **triple-neglect pattern** - discovering that the most overlooked crises are simultaneously severe, underfunded, *and* invisible in media - was a genuine finding from the data, not something we set out to prove
-- The **Reallocation Simulator** turns analysis into a policy tool: a decision-maker can adjust a single slider and see what happens if 10% of well-funded crisis budgets move to the most overlooked
+- The **Reallocation Simulator** turns analysis into a policy tool: a decision-maker can adjust three sliders and model what happens if 10% of well-funded crisis budgets move to the most overlooked, with sensitivity analysis and estimated people reached
+- **Crisis Intelligence Briefs** make the data speak in plain English — every country gets an auto-generated 3-sentence situational summary with severity classification, media visibility, and the most critical sector
 - **265 benchmark projects** at 15.6x the median efficiency ratio gives OCHA a concrete shortlist for cross-context learning
 - The system works end-to-end: live data download to OCI computation to interactive dashboard to Databricks notebook to research paper, all from the same pipeline
 

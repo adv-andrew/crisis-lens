@@ -46,10 +46,13 @@ Higher OCI = more overlooked. The media multiplier ensures that crises which are
 ## Features
 
 ### Interactive Geo Map
-Choropleth world map colored by OCI score with four switchable layers (OCI, Funding Gap, People in Need, Media Neglect). Click any country to see its full breakdown.
+Choropleth world map colored by OCI score with four switchable layers (OCI, Funding Gap, People in Need, Media Neglect). Click any country to see an instant crisis brief and full breakdown.
+
+### Crisis Intelligence Briefs
+Every country view includes an auto-generated 3-sentence intelligence summary synthesizing severity classification (Extreme/Severe/Serious/Stressed/Minimal derived from PIN/population thresholds), funding gap, media visibility, and the most critically underfunded sector. Template-driven with no LLM dependency — updates dynamically as users navigate.
 
 ### Crisis Drilldown
-Per-country analysis showing OCI component decomposition, cluster-level funding gaps (WASH, Health, Food Security, etc.), and historical funding trends. Flags critically underfunded clusters that are >1.5 standard deviations above the country average.
+Per-country analysis showing OCI component decomposition, cluster-level funding gaps (WASH, Health, Food Security, etc.), historical funding trends, and a full intelligence brief. Flags critically underfunded clusters that are >1.5 standard deviations above the country average.
 
 <p align="center">
   <img src="figures/cluster_gap_ssd_2026.png" alt="Cluster funding gaps for South Sudan" width="600"/>
@@ -76,7 +79,7 @@ Linear regression with **90% prediction intervals** on historical funding gap tr
 </p>
 
 ### Reallocation Simulator
-Interactive policy tool: adjust a slider to redistribute a percentage of funding from well-funded crises to the most overlooked ones, proportional to OCI score. Shows projected impact on funding gaps in real time.
+Interactive policy tool with three controls: reallocation percentage (0-30%), recipient OCI threshold, and donor funding gap threshold. Redistributes funding from well-funded crises to the most overlooked, proportional to OCI score. Shows before/after funding gap comparison, sensitivity analysis across reallocation levels, estimated additional people reached, and donor/recipient breakdowns. Turns OCI from a diagnostic into a prescriptive decision-support tool.
 
 ---
 
@@ -96,7 +99,7 @@ Data Sources (HNO, FTS, COD-PS, CBPF, Google Trends)
         └──► similarity_engine.py ──► Cosine similarity recommender
                     │
                     ▼
-            Streamlit App (5 pages)
+            Streamlit App (6 pages)
                     │
                     ▼
         Databricks Notebook (Delta Lake + Spark SQL)

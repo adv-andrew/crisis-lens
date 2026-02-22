@@ -51,6 +51,13 @@
 - [x] Add tests for utils (48 tests: data_loader, oci_calculator, outlier_detector, similarity_engine, actian_connector, edge cases)
 - [x] Set up linting (ruff, all checks passing)
 
+### Phase 1.5: Score-Boosting Features
+- [x] Crisis intelligence briefs (template-based NL summaries on drilldown + map pages)
+- [x] Reallocation Simulator (6_Reallocation_Simulator.py — slider controls, sensitivity analysis, before/after comparison)
+- [x] Severity classification display (Extreme/Severe/Serious/Stressed/Minimal from PIN/pop ratio)
+- [x] Updated LaTeX paper (abstract, intro, system, results, discussion, conclusion)
+- [x] Updated devpost.txt and README.md
+
 ### Phase 2: Polish
 - [x] Create README.md for GitHub/Devpost
 - [x] Build Databricks notebook (full_pipeline.ipynb) - code complete, needs Databricks runtime for outputs
@@ -82,6 +89,11 @@
 - Fixed negative funding gap bug in oci_calculator (added clip to input) - Feb 21
 - 48 tests passing (added actian connector tests, edge case tests) - Feb 21
 - Recommender page simplified (auto-runs similarity on page load) - Feb 21
+- Crisis intelligence briefs added to Overview Map and Crisis Drilldown pages - Feb 21
+- Reallocation Simulator (page 6) built with 3-slider controls, sensitivity analysis, before/after comparison - Feb 21
+- Severity classification (Extreme-Minimal) derived from PIN/pop ratio, displayed in crisis briefs - Feb 21
+- LaTeX paper updated: abstract, intro (4 contributions), system section, results (reallocation subsection), discussion, conclusion - Feb 21
+- devpost.txt and README.md updated with new features - Feb 21
 
 ---
 

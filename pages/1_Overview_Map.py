@@ -177,6 +177,35 @@ if selected:
         st.markdown("---")
         st.subheader(f"{country_name} ({selected})")
 
+        # --- Quick Crisis Brief ---
+        pin_m = r.get("people_in_need_k", 0) / 1000 if pd.notna(r.get("people_in_need_k")) else 0
+        gap_pct = r.get("funding_gap", 0) * 100 if pd.notna(r.get("funding_gap")) else 0
+        media = r.get("media_score", 0) if pd.notna(r.get("media_score")) else 0
+        req = r.get("requirements_usd_m", 0) if pd.notna(r.get("requirements_usd_m")) else 0
+        fund = r.get("funding_usd_m", 0) if pd.notna(r.get("funding_usd_m")) else 0
+
+        if media > 0.8:
+            media_desc = "virtually no global media attention"
+        elif media > 0.6:
+            media_desc = "minimal media coverage"
+        elif media > 0.4:
+            media_desc = "below-average media visibility"
+        else:
+            media_desc = "moderate-to-high media coverage"
+
+        brief = (
+            f"**{country_name}** has **{pin_m:.1f}M people** in need. "
+            f"Only **${fund:,.0f}M** of the **${req:,.0f}M** required has been funded "
+            f"({gap_pct:.0f}% gap). The crisis receives {media_desc}."
+        )
+        st.markdown(
+            f'<div style="border-left:3px solid #e74c3c;padding:8px 14px;'
+            f'margin-bottom:12px;font-size:14px;line-height:1.6;'
+            f'background:rgba(231,76,60,0.05);border-radius:0 6px 6px 0">'
+            f'{brief}</div>',
+            unsafe_allow_html=True,
+        )
+
         # KPI metrics
         c1, c2, c3, c4 = st.columns(4)
         with c1:
