@@ -13,6 +13,7 @@ import plotly.express as px
 import streamlit as st
 
 from utils.pinata_upload import get_pinata_jwt, upload_json_to_pinata
+from utils.donate_solana import get_treasury_address, render_donate_solana
 
 
 def _make_country_mint_script(uris):
@@ -485,6 +486,19 @@ st.dataframe(
         ),
     },
 )
+
+# --- Donate SOL to a country on the OCI list ---
+with st.expander("Donate SOL to a country"):
+    options = df_table.apply(
+        lambda r: (r["country_iso3"], r.get("country_name") or r.get("display_name") or r["country_iso3"]),
+        axis=1,
+    ).tolist()
+    iso_list = [x[0] for x in options]
+    name_list = [x[1] for x in options]
+    labels = [f"{name} ({iso})" for iso, name in options]
+    idx = st.selectbox("Country to donate to", range(len(labels)), format_func=lambda i: labels[i], key="donate_country_select")
+    if idx is not None:
+        render_donate_solana(iso_list[idx], name_list[idx], compact=True)
 
 # --- Tokenize countries on Solana (same logic as mint_nfts.py) ---
 if "country_token_uris" not in st.session_state:
