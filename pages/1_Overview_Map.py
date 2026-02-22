@@ -3,6 +3,7 @@ CrisisLens — Overview Map
 =========================
 OCI choropleth world map with country click drill-down.
 Primary entry point for the visual experience.
+Includes tokenize-on-Solana for each country in the OCI rankings (same method as mint_nfts.py).
 """
 
 from pathlib import Path
@@ -10,6 +11,40 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+
+from utils.pinata_upload import get_pinata_jwt, upload_json_to_pinata
+
+
+def _make_country_mint_script(uris):
+    """Generate a runnable Python script that mints each country as a Solana token (same logic as mint_nfts.py)."""
+    lines = [
+        '"""Mint CrisisLens country tokens on Solana. Generated from Overview Map. Same logic as mint_nfts.py."""',
+        "import subprocess",
+        "",
+        "uris = {",
+    ]
+    for iso, data in uris.items():
+        name_safe = data["name"].replace("\\", "\\\\").replace('"', '\\"')
+        lines.append(f'    "{iso}": {{"name": "{name_safe}", "uri": "{data["uri"]}"}},')
+    lines.append("}")
+    lines.append("")
+    lines.append('print("Minting country tokens...\\n" + "="*40)')
+    lines.append("")
+    lines.append("for iso, info in uris.items():")
+    lines.append('    name, uri = info["name"], info["uri"]')
+    lines.append('    print(f"Minting: {name}")')
+    lines.append("    out = subprocess.getoutput('spl-token create-token --program-2022 --decimals 0 --enable-metadata')")
+    lines.append("    try:")
+    lines.append('        token_address = out.split("Creating token ")[1].split()[0]')
+    lines.append("    except IndexError:")
+    lines.append('        print(f"  Error: {out}")')
+    lines.append("        continue")
+    lines.append("    subprocess.run(['spl-token', 'initialize-metadata', token_address, name, 'CRISIS', uri], check=True)")
+    lines.append("    subprocess.run(['spl-token', 'create-account', token_address], check=True)")
+    lines.append("    subprocess.run(['spl-token', 'mint', token_address, '1'], check=True)")
+    lines.append("    subprocess.run(['spl-token', 'authorize', token_address, 'mint', '--disable'], check=True)")
+    lines.append('    print(f"  Token: {token_address}\\n" + "-"*40)')
+    return "\n".join(lines)
 
 
 # --- Data loading ---
@@ -450,3 +485,79 @@ st.dataframe(
         ),
     },
 )
+
+# --- Tokenize countries on Solana (same logic as mint_nfts.py) ---
+if "country_token_uris" not in st.session_state:
+    st.session_state["country_token_uris"] = {}
+
+with st.expander("Tokenize countries on Solana"):
+    st.caption(
+        "Upload each country in the rankings table as metadata to IPFS (Pinata), "
+        "then mint as a Solana token (Token-2022) using the same method as mint_nfts.py."
+    )
+    jwt = get_pinata_jwt()
+    if not jwt:
+        st.warning("Set **PINATA_JWT** in `.env` to enable tokenization (get a JWT at [pinata.cloud](https://pinata.cloud)).")
+    else:
+        if st.button("Upload metadata for all countries in table", type="primary"):
+            progress = st.progress(0, text="Uploading to Pinata...")
+            uris = {}
+            n = len(df_table)
+            for i, (_, row) in enumerate(df_table.iterrows()):
+                name = str(row.get("country_name") or row.get("display_name") or row["country_iso3"])
+                iso = row["country_iso3"]
+                oci = float(row.get("oci_score", 0))
+                gap = float(row.get("funding_gap", 0))
+                pin_k = float(row.get("people_in_need_k", 0))
+                req = row.get("requirements_usd_m")
+                fund = row.get("funding_usd_m")
+                metadata = {
+                    "name": f"CrisisLens — {name}",
+                    "description": (
+                        f"Overlooked Crisis Index: {name}. "
+                        f"OCI {oci:.3f}, funding gap {gap*100:.0f}%, "
+                        f"{pin_k:,.0f}k people in need."
+                    ),
+                    "attributes": [
+                        {"trait_type": "Country", "value": name},
+                        {"trait_type": "ISO3", "value": iso},
+                        {"trait_type": "OCI Score", "value": round(oci, 3)},
+                        {"trait_type": "Funding Gap %", "value": round(gap * 100, 1)},
+                        {"trait_type": "People in Need (k)", "value": round(pin_k, 0)},
+                        {"trait_type": "Source", "value": "CrisisLens"},
+                    ],
+                }
+                try:
+                    uri = upload_json_to_pinata(
+                        metadata,
+                        filename=f"crisislens_country_{iso}.json",
+                        jwt=jwt,
+                    )
+                    uris[iso] = {"name": name, "uri": uri}
+                except Exception as e:
+                    st.session_state["country_token_error"] = str(e)
+                progress.progress((i + 1) / n, text=f"Uploaded {i+1}/{n}...")
+            progress.empty()
+            st.session_state["country_token_uris"] = uris
+            if "country_token_error" in st.session_state:
+                st.error(st.session_state["country_token_error"])
+                del st.session_state["country_token_error"]
+
+        uris = st.session_state.get("country_token_uris", {})
+        if uris:
+            st.success(f"**{len(uris)}** country metadata URIs ready. Use them to mint Solana tokens (same as mint_nfts.py).")
+            for iso, data in list(uris.items())[:10]:
+                st.text(f"{data['name']}: {data['uri']}")
+            if len(uris) > 10:
+                st.caption(f"... and {len(uris) - 10} more.")
+            # Generate mint script like mint_nfts.py (spl-token create-token, initialize-metadata, mint 1, lock)
+            st.subheader("Mint with spl-token (same as mint_nfts.py)")
+            st.caption("Requires Solana CLI and spl-token. Run the downloaded script from the crisis-lens directory.")
+            script_body = _make_country_mint_script(uris)
+            st.code(script_body, language="python")
+            st.download_button(
+                "Download mint script (mint_country_tokens.py)",
+                data=script_body,
+                file_name="mint_country_tokens.py",
+                mime="text/x-python",
+            )
