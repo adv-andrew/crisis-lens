@@ -12,6 +12,8 @@ uris = {
 
 print("Starting the minting process...\n" + "="*40)
 
+token_ids = {}
+
 for name, uri in uris.items():
     print(f"Minting: {name}")
     
@@ -23,6 +25,7 @@ for name, uri in uris.items():
     try:
         token_address = token_output.split("Creating token ")[1].split()[0]
         print(f"  Token ID: {token_address}")
+        token_ids[name] = token_address
     except IndexError:
         print(f"  Error creating token for {name}. Output: {token_output}")
         continue
@@ -40,3 +43,14 @@ for name, uri in uris.items():
     os.system(f"spl-token authorize {token_address} mint --disable")
 
     print(f"Finished {name}\n" + "-"*40)
+
+# Output pasteable block for app.py
+if token_ids:
+    print("\n" + "="*40)
+    print("PASTE THIS INTO app.py (replace the CHART_TOKEN_IDS dict):")
+    print("="*40)
+    print("\nCHART_TOKEN_IDS = {")
+    for k, v in token_ids.items():
+        print(f'    "{k}": "{v}",')
+    print("}")
+    print()
